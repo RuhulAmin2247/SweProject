@@ -1,0 +1,227 @@
+.admin-panel {
+  min-height: 100vh;
+  background: #f8f9fa;
+  padding: 2rem;
+}
+
+.admin-header {
+  max-width: 1200px;
+  margin: 0 auto 2rem auto;
+}
+
+.back-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-bottom: 2rem;
+  transition: background 0.3s;
+}
+
+.back-btn:hover {
+  background: #5a6fd8;
+}
+
+.admin-header h1 {
+  color: #333;
+  margin-bottom: 2rem;
+  font-size: 2.5rem;
+}
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  border-left: 4px solid #667eea;
+}
+
+.stat-card.available {
+  border-left-color: #4CAF50;
+}
+
+.stat-card.booked {
+  border-left-color: #ff4757;
+}
+
+.stat-number {
+  display: block;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  color: #666;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.admin-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.admin-content h2 {
+  padding: 2rem 2rem 1rem 2rem;
+  margin: 0;
+  color: #333;
+  border-bottom: 1px solid #eee;
+}
+
+.admin-table {
+  width: 100%;
+}
+
+.table-header,
+.table-row {
+  display: grid;
+  grid-template-columns: 60px 2fr 100px 1fr 100px 100px 120px;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  align-items: center;
+}
+
+.table-header {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #555;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-row {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.3s;
+}
+
+.table-row:hover {
+  background: #f8f9fa;
+}
+
+.property-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.property-thumb {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.property-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.2rem;
+}
+
+.property-details {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.type-badge {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-badge.available {
+  background: #e8f5e8;
+  color: #4CAF50;
+}
+
+.status-badge.booked {
+  background: #ffeaea;
+  color: #f44336;
+}
+
+.remove-btn {
+  background: #ff4757;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.3s;
+}
+
+.remove-btn:hover {
+  background: #ff3838;
+}
+
+.no-properties {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #666;
+}
+
+.no-properties h3 {
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+@media (max-width: 768px) {
+  .admin-panel {
+    padding: 1rem;
+  }
+  
+  .admin-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .table-header,
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+  
+  .table-header {
+    display: none;
+  }
+  
+  .table-row {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid #eee;
+    border-radius: 8px;
+  }
+  
+  .table-row > div {
+    padding: 0.5rem 0;
+  }
+}
