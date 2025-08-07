@@ -7,7 +7,7 @@ const SeatCard = ({ seat, onClick }) => {
       <div className="seat-image">
         <img src={seat.image} alt={seat.title} />
         <div className={`availability-badge ${seat.availability.toLowerCase()}`}>
-          {seat.availability}
+          {seat.vacantSeats > 0 ? `${seat.vacantSeats} Seats Left` : 'Full'}
         </div>
       </div>
       <div className="seat-info">
@@ -30,8 +30,13 @@ const SeatCard = ({ seat, onClick }) => {
             <span className="amount">৳{seat.price}</span>
             <span className="period">/month</span>
           </div>
-          <div className="rating">
-            ⭐ {seat.rating}
+          <div className="seat-info-right">
+            <div className="rating">
+              ⭐ {seat.rating}
+            </div>
+            <div className="seat-count">
+              🏠 {seat.vacantSeats}/{seat.totalSeats} Available
+            </div>
           </div>
         </div>
         <div className="amenities">

@@ -149,8 +149,8 @@
 
 .location-info {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.8rem;
   margin-bottom: 1.5rem;
 }
 
@@ -163,6 +163,17 @@
 .rating {
   color: #ff9800;
   font-weight: 500;
+}
+
+.seat-capacity {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4CAF50;
+  padding: 0.8rem;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-align: center;
+  border: 2px solid rgba(76, 175, 80, 0.3);
 }
 
 .price-section {

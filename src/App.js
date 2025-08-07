@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import Header from './components/Header';
 import SeatCard from './components/SeatCard';
@@ -6,6 +6,10 @@ import SeatDetails from './components/SeatDetails';
 import AddSeatForm from './components/AddSeatForm';
 import AdminPanel from './components/AdminPanel';
 import SearchBar from './components/SearchBar';
+import Login from './components/Login';
+import Register from './components/Register';
+import { onAuthStateChange, logoutUser } from './firebase/auth';
+import { createDemoAccounts } from './firebase/setupDemo';
 
 function App() {
   const [seats, setSeats] = useState([
@@ -27,7 +31,15 @@ function App() {
       description: "Clean and hygienic mess with home-cooked food. 3 meals included.",
       amenities: ["WiFi", "AC", "Laundry", "24/7 Security"],
       contact: "+880 1711-123456",
-      rating: 4.5
+      rating: 4.5,
+      status: "published",
+      vacantSeats: 3,
+      totalSeats: 8,
+      ownerInfo: {
+        name: "Ahmed Hassan",
+        nidNumber: "1234567890123",
+        holdingNumber: "MB-001"
+      }
     },
     {
       id: 2,
@@ -46,7 +58,15 @@ function App() {
       description: "Furnished single room near Rajshahi University. Perfect for students.",
       amenities: ["WiFi", "Furnished", "Kitchen Access", "Study Room"],
       contact: "+880 1811-234567",
-      rating: 4.2
+      rating: 4.2,
+      status: "published",
+      vacantSeats: 1,
+      totalSeats: 1,
+      ownerInfo: {
+        name: "Fatima Khatun",
+        nidNumber: "9876543210987",
+        holdingNumber: "UA-025"
+      }
     },
     {
       id: 3,
@@ -65,7 +85,15 @@ function App() {
       description: "Affordable mess with quality food and friendly environment.",
       amenities: ["WiFi", "Common Room", "Library", "Medical Facility"],
       contact: "+880 1911-345678",
-      rating: 4.0
+      rating: 4.0,
+      status: "published",
+      vacantSeats: 6,
+      totalSeats: 12,
+      ownerInfo: {
+        name: "Mohammad Rahman",
+        nidNumber: "5678901234567",
+        holdingNumber: "KZ-012"
+      }
     },
     {
       id: 4,
@@ -86,13 +114,27 @@ function App() {
       description: "Premium boarding house with excellent facilities.",
       amenities: ["AC", "WiFi", "Generator", "Security"],
       contact: "+880 1611-456789",
-      rating: 4.7
+      rating: 4.7,
+      status: "published",
+      vacantSeats: 0,
+      totalSeats: 4,
+      ownerInfo: {
+        name: "Nasreen Akter",
+        nidNumber: "1357924680135",
+        holdingNumber: "CP-008"
+      }
     }
   ]);
+
+  const [pendingRequests, setPendingRequests] = useState([]);
 
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authAction, setAuthAction] = useState(null); // 'book' or 'publish'
   const [filters, setFilters] = useState({
     type: '',
     gender: '',
@@ -101,6 +143,36 @@ function App() {
     occupancy: '',
     search: ''
   });
+
+  // Firebase Auth State Listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChange((user) => {
+      setCurrentUser(user);
+    });
+
+    // Setup demo accounts on first load (only in development)
+    const setupDemo = async () => {
+      const hasSetupDemo = localStorage.getItem('demoAccountsSetup');
+      if (!hasSetupDemo && process.env.NODE_ENV === 'development') {
+        try {
+          await createDemoAccounts();
+          localStorage.setItem('demoAccountsSetup', 'true');
+          console.log('✅ Demo accounts are ready!');
+          console.log('📧 You can now login with:');
+          console.log('   student@demo.com / 123456');
+          console.log('   owner@demo.com / 123456'); 
+          console.log('   admin@demo.com / 123456');
+        } catch (error) {
+          console.log('Demo accounts setup skipped:', error.message);
+        }
+      }
+    };
+    
+    setupDemo();
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, []);
 
   const handleSeatClick = (seat) => {
     setSelectedSeat(seat);
@@ -111,13 +183,33 @@ function App() {
   };
 
   const handleAddSeat = (newSeat) => {
-    const seatWithId = {
+    const requestWithId = {
       ...newSeat,
-      id: seats.length + 1,
-      rating: 0
+      id: Date.now(), // Temporary ID for pending request
+      rating: 0,
+      status: "pending",
+      submittedAt: new Date().toISOString()
     };
-    setSeats([...seats, seatWithId]);
+    setPendingRequests([...pendingRequests, requestWithId]);
     setShowAddForm(false);
+    alert("Your property request has been submitted for admin approval!");
+  };
+
+  const handleApproveRequest = (requestId) => {
+    const request = pendingRequests.find(req => req.id === requestId);
+    if (request) {
+      const newSeat = {
+        ...request,
+        id: Math.max(...seats.map(s => s.id), 0) + 1, // New ID for published seat
+        status: "published"
+      };
+      setSeats([...seats, newSeat]);
+      setPendingRequests(pendingRequests.filter(req => req.id !== requestId));
+    }
+  };
+
+  const handleRejectRequest = (requestId) => {
+    setPendingRequests(pendingRequests.filter(req => req.id !== requestId));
   };
 
   const handleRemoveSeat = (seatId) => {
@@ -125,11 +217,17 @@ function App() {
   };
 
   const handleBookSeat = (seatId) => {
-    setSeats(seats.map(seat => 
-      seat.id === seatId 
-        ? { ...seat, availability: 'Booked' }
-        : seat
-    ));
+    setSeats(seats.map(seat => {
+      if (seat.id === seatId) {
+        const newVacantSeats = seat.vacantSeats - 1;
+        return { 
+          ...seat, 
+          vacantSeats: newVacantSeats,
+          availability: newVacantSeats <= 0 ? 'Booked' : 'Available'
+        };
+      }
+      return seat;
+    }));
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -139,9 +237,67 @@ function App() {
     }));
   };
 
+  // Authentication handlers
+  const handleLogin = (userData) => {
+    setCurrentUser(userData);
+    setShowLogin(false);
+    
+    // Execute the pending action if any
+    if (authAction === 'publish') {
+      setShowAddForm(true);
+    } else if (authAction === 'book' && selectedSeat) {
+      handleBookSeat(selectedSeat.id);
+    }
+    setAuthAction(null);
+  };
+
+  const handleRegister = (userData) => {
+    setCurrentUser(userData);
+    setShowRegister(false);
+    
+    // Execute the pending action if any
+    if (authAction === 'publish') {
+      setShowAddForm(true);
+    } else if (authAction === 'book' && selectedSeat) {
+      handleBookSeat(selectedSeat.id);
+    }
+    setAuthAction(null);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      setShowAdminPanel(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  const requireAuth = (action, seatData = null) => {
+    if (!currentUser) {
+      setAuthAction(action);
+      if (seatData) setSelectedSeat(seatData);
+      setShowLogin(true);
+      return false;
+    }
+    return true;
+  };
+
+  const handleAuthenticatedBooking = (seatId) => {
+    if (requireAuth('book', seats.find(s => s.id === seatId))) {
+      handleBookSeat(seatId);
+    }
+  };
+
+  const handleAuthenticatedPublish = () => {
+    if (requireAuth('publish')) {
+      setShowAddForm(true);
+    }
+  };
+
   const filteredSeats = seats.filter(seat => {
-    // Only show available seats (remove booked ones from main listing)
-    if (seat.availability === 'Booked') return false;
+    // Only show published seats with vacant seats available
+    if (seat.status !== 'published' || seat.vacantSeats <= 0) return false;
 
     // Filter by type
     if (filters.type && filters.type !== 'All Types' && seat.type !== filters.type) {
@@ -209,7 +365,7 @@ function App() {
         <SeatDetails 
           seat={selectedSeat} 
           onBack={handleBackToList}
-          onBook={handleBookSeat}
+          onBook={handleAuthenticatedBooking}
         />
       </div>
     );
@@ -228,7 +384,10 @@ function App() {
       <div className="App">
         <AdminPanel 
           seats={seats}
+          pendingRequests={pendingRequests}
           onRemoveSeat={handleRemoveSeat}
+          onApproveRequest={handleApproveRequest}
+          onRejectRequest={handleRejectRequest}
           onBack={() => setShowAdminPanel(false)}
         />
       </div>
@@ -237,17 +396,21 @@ function App() {
 
   return (
     <div className="App">
-      <Header onAdminClick={() => setShowAdminPanel(true)} />
+      <Header 
+        onAdminClick={() => setShowAdminPanel(true)} 
+        currentUser={currentUser}
+        onLogin={() => setShowLogin(true)}
+        onLogout={handleLogout}
+      />
       <main className="main-content">
         <div className="hero-section">
           <h1>Find Your Perfect Mess/House in Rajshahi</h1>
           <p>Verified and affordable accommodation for students</p>
+          <SearchBar 
+            searchTerm={filters.search}
+            onSearchChange={(value) => handleFilterChange('search', value)}
+          />
         </div>
-        
-        <SearchBar 
-          searchTerm={filters.search}
-          onSearchChange={(value) => handleFilterChange('search', value)}
-        />
         
         <div className="filter-section">
           <div className="filters">
@@ -332,11 +495,34 @@ function App() {
 
         <button 
           className="add-seat-btn"
-          onClick={() => setShowAddForm(true)}
+          onClick={handleAuthenticatedPublish}
         >
           + Add Your Mess/House
         </button>
       </main>
+
+      {/* Authentication Modals */}
+      {showLogin && (
+        <Login
+          onLogin={handleLogin}
+          onClose={() => setShowLogin(false)}
+          onSwitchToRegister={() => {
+            setShowLogin(false);
+            setShowRegister(true);
+          }}
+        />
+      )}
+
+      {showRegister && (
+        <Register
+          onRegister={handleRegister}
+          onClose={() => setShowRegister(false)}
+          onSwitchToLogin={() => {
+            setShowRegister(false);
+            setShowLogin(true);
+          }}
+        />
+      )}
     </div>
   );
 }

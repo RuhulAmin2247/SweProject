@@ -124,6 +124,13 @@
   margin-bottom: 1rem;
 }
 
+.seat-info-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
 .price .amount {
   font-size: 1.5rem;
   font-weight: bold;
@@ -139,6 +146,16 @@
   font-size: 0.9rem;
   color: #ff9800;
   font-weight: 500;
+}
+
+.seat-count {
+  font-size: 0.85rem;
+  color: #4CAF50;
+  font-weight: 500;
+  background: rgba(76, 175, 80, 0.1);
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
 .amenities {

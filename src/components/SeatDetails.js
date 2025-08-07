@@ -1,9 +1,19 @@
 import React, { useState } from 'react';
 import './SeatDetails.css';
 
-const SeatDetails = ({ seat, onBack }) => {
+const SeatDetails = ({ seat, onBack, onBook }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const images = seat.images || [seat.image];
+
+  const handleBooking = () => {
+    if (seat.vacantSeats > 0) {
+      const confirmed = window.confirm(`Book a seat at ${seat.title}? This will reduce available seats from ${seat.vacantSeats} to ${seat.vacantSeats - 1}.`);
+      if (confirmed) {
+        onBook(seat.id);
+        alert('Seat booked successfully!');
+      }
+    }
+  };
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % images.length);
@@ -37,8 +47,8 @@ const SeatDetails = ({ seat, onBack }) => {
               </>
             )}
           </div>
-          <div className={`availability-badge ${seat.availability.toLowerCase()}`}>
-            {seat.availability}
+          <div className={`availability-badge ${seat.vacantSeats > 0 ? 'available' : 'booked'}`}>
+            {seat.vacantSeats > 0 ? `${seat.vacantSeats} Seats Available` : 'Fully Booked'}
           </div>
         </div>
         
@@ -59,6 +69,9 @@ const SeatDetails = ({ seat, onBack }) => {
           <div className="location-info">
             <p className="location">📍 {seat.location}</p>
             <div className="rating">⭐ {seat.rating} Rating</div>
+            <div className="seat-capacity">
+              🏠 {seat.vacantSeats}/{seat.totalSeats} Seats Available
+            </div>
           </div>
           
           <div className="price-section">
@@ -88,8 +101,12 @@ const SeatDetails = ({ seat, onBack }) => {
           </div>
           
           <div className="action-buttons">
-            <button className="book-btn" disabled={seat.availability === 'Booked'}>
-              {seat.availability === 'Available' ? 'Book Now' : 'Currently Booked'}
+            <button 
+              className="book-btn" 
+              disabled={seat.vacantSeats <= 0}
+              onClick={handleBooking}
+            >
+              {seat.vacantSeats > 0 ? `Book Now (${seat.vacantSeats} left)` : 'Fully Booked'}
             </button>
             <button className="contact-btn">Contact Owner</button>
           </div>
