@@ -1,8 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './AdminPanel.css';
+import { getUserStats } from '../firebase/userStats';
 
 const AdminPanel = ({ seats, pendingRequests, onRemoveSeat, onApproveRequest, onRejectRequest, onBack }) => {
   const [activeTab, setActiveTab] = useState('published');
+  const [userStats, setUserStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Load user statistics on component mount
+  useEffect(() => {
+    const loadUserStats = async () => {
+      try {
+        setLoading(true);
+        const stats = await getUserStats();
+        setUserStats(stats);
+      } catch (error) {
+        console.error('Error loading user stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadUserStats();
+  }, []);
   
   const totalSeats = seats.filter(seat => seat.status === 'published').length;
   const availableSeats = seats.filter(seat => seat.status === 'published' && seat.availability === 'Available').length;
@@ -33,6 +53,26 @@ const AdminPanel = ({ seats, pendingRequests, onRemoveSeat, onApproveRequest, on
             <span className="stat-number">{pendingCount}</span>
             <span className="stat-label">Pending</span>
           </div>
+          {userStats && (
+            <>
+              <div className="stat-card users">
+                <span className="stat-number">{userStats.totalUsers}</span>
+                <span className="stat-label">Total Users</span>
+              </div>
+              <div className="stat-card students">
+                <span className="stat-number">{userStats.students}</span>
+                <span className="stat-label">Students</span>
+              </div>
+              <div className="stat-card owners">
+                <span className="stat-number">{userStats.owners}</span>
+                <span className="stat-label">Owners</span>
+              </div>
+              <div className="stat-card admins">
+                <span className="stat-number">{userStats.admins}</span>
+                <span className="stat-label">Admins</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -49,6 +89,12 @@ const AdminPanel = ({ seats, pendingRequests, onRemoveSeat, onApproveRequest, on
             onClick={() => setActiveTab('published')}
           >
             Published Properties ({totalSeats})
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+            onClick={() => setActiveTab('users')}
+          >
+            Users ({userStats ? userStats.totalUsers : '...'})
           </button>
         </div>
 
@@ -185,6 +231,48 @@ const AdminPanel = ({ seats, pendingRequests, onRemoveSeat, onApproveRequest, on
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'users' && (
+          <div className="users-section">
+            <h2>User Management</h2>
+            {loading ? (
+              <div className="loading">Loading user data...</div>
+            ) : userStats && userStats.userList.length > 0 ? (
+              <div className="admin-table">
+                <div className="table-header">
+                  <div className="col-email">Email</div>
+                  <div className="col-name">Name</div>
+                  <div className="col-type">Type</div>
+                  <div className="col-date">Joined</div>
+                  <div className="col-actions">Status</div>
+                </div>
+                
+                {userStats.userList.map((user, index) => (
+                  <div key={user.email} className="table-row">
+                    <div className="col-email">{user.email}</div>
+                    <div className="col-name">{user.name}</div>
+                    <div className="col-type">
+                      <span className={`user-type ${user.userType}`}>
+                        {user.userType}
+                      </span>
+                    </div>
+                    <div className="col-date">
+                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                    </div>
+                    <div className="col-actions">
+                      <span className="status-active">Active</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="no-properties">
+                <h3>No users found</h3>
+                <p>No registered users in the system.</p>
               </div>
             )}
           </div>

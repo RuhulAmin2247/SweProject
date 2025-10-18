@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import defaultImageGroups from '../config/defaultImages';
 import './AddSeatForm.css';
 
 const AddSeatForm = ({ onSubmit, onCancel }) => {
@@ -14,14 +15,7 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
     imageFiles: [],
     occupancyType: 'Single',
     gender: 'Boys',
-    availability: 'Available',
-    vacantSeats: 1,
-    totalSeats: 1,
-    ownerInfo: {
-      name: '',
-      nidNumber: '',
-      holdingNumber: ''
-    }
+    availability: 'Available'
   });
 
   const availableAmenities = [
@@ -33,17 +27,6 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-  };
-
-  const handleOwnerInfoChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ 
-      ...formData, 
-      ownerInfo: { 
-        ...formData.ownerInfo, 
-        [name]: value 
-      } 
-    });
   };
 
   const handleFileUpload = (e) => {
@@ -92,19 +75,17 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (formData.title && formData.location && formData.price && formData.contact && 
-        formData.ownerInfo.name && formData.ownerInfo.nidNumber && formData.ownerInfo.holdingNumber) {
+    if (formData.title && formData.location && formData.price && formData.contact) {
       // For demo purposes, we'll use the preview URLs
       // In a real app, you would upload files to a server first
-      const submissionData = {
-        ...formData,
-        price: parseInt(formData.price),
-        images: formData.images.length > 0 ? formData.images : ['https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400'],
-        image: formData.images.length > 0 ? formData.images[0] : 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400' // For backward compatibility
-      };
+        const fallbackImages = defaultImageGroups[0];
+        const submissionData = {
+          ...formData,
+          price: parseInt(formData.price),
+          images: formData.images.length > 0 ? formData.images : fallbackImages,
+          image: formData.images.length > 0 ? formData.images[0] : fallbackImages[0] // For backward compatibility
+        };
       onSubmit(submissionData);
-    } else {
-      alert('Please fill in all required fields including owner information.');
     }
   };
 
@@ -112,8 +93,7 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
     <div className="add-seat-form">
       <div className="form-container">
         <div className="form-header">
-          <h2>Submit Your Mess/House for Verification</h2>
-          <p className="form-subtitle">Your property will be reviewed by admin before being published</p>
+          <h2>Add Your Mess/House</h2>
           <button className="close-btn" onClick={onCancel}>×</button>
         </div>
         
@@ -176,30 +156,6 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
                 required
               />
             </div>
-
-            <div className="form-group">
-              <label htmlFor="vacantSeats">Available Seats *</label>
-              <input
-                type="number"
-                id="vacantSeats"
-                name="vacantSeats"
-                value={formData.vacantSeats}
-                onChange={(e) => {
-                  const seats = parseInt(e.target.value) || 0;
-                  setFormData({ 
-                    ...formData, 
-                    vacantSeats: seats,
-                    totalSeats: seats,
-                    availability: seats > 0 ? 'Available' : 'Booked'
-                  });
-                }}
-                placeholder="e.g., 5"
-                min="0"
-                max="50"
-                required
-              />
-              <small className="field-help">How many seats are currently available for booking?</small>
-            </div>
           </div>
 
           <div className="form-group">
@@ -238,55 +194,6 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
               placeholder="e.g., +880 1711-123456"
               required
             />
-          </div>
-
-          {/* Owner Authentication Section */}
-          <div className="form-section-header">
-            <h3>🔒 Owner Verification (Required)</h3>
-            <p>Please provide your details for property verification</p>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="ownerName">Owner Full Name *</label>
-            <input
-              type="text"
-              id="ownerName"
-              name="name"
-              value={formData.ownerInfo.name}
-              onChange={handleOwnerInfoChange}
-              placeholder="e.g., Mohammed Ahmed Hassan"
-              required
-            />
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="nidNumber">National ID Number *</label>
-              <input
-                type="text"
-                id="nidNumber"
-                name="nidNumber"
-                value={formData.ownerInfo.nidNumber}
-                onChange={handleOwnerInfoChange}
-                placeholder="e.g., 1234567890123"
-                maxLength="13"
-                minLength="10"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="holdingNumber">Building Holding Number *</label>
-              <input
-                type="text"
-                id="holdingNumber"
-                name="holdingNumber"
-                value={formData.ownerInfo.holdingNumber}
-                onChange={handleOwnerInfoChange}
-                placeholder="e.g., SB-001 or 12/A"
-                required
-              />
-            </div>
           </div>
 
           <div className="form-group">
@@ -386,7 +293,7 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
               Cancel
             </button>
             <button type="submit" className="submit-btn">
-              Submit for Approval
+              Add Property
             </button>
           </div>
         </form>

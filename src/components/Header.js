@@ -1,7 +1,7 @@
 import React from 'react';
 import './Header.css';
 
-const Header = ({ onAdminClick, currentUser, onLogin, onLogout }) => {
+const Header = ({ onAdminClick, currentUser, isAdmin, onLogin, onLogout }) => {
   return (
     <header className="header">
       <div className="header-container">
@@ -13,9 +13,9 @@ const Header = ({ onAdminClick, currentUser, onLogin, onLogout }) => {
           <a href="#home">Home</a>
           <a href="#about">About</a>
           <a href="#contact">Contact</a>
-          {currentUser && currentUser.userType === 'admin' && (
+          {isAdmin && (
             <button className="admin-btn" onClick={onAdminClick}>
-              Admin Panel
+              🔒 Admin Panel
             </button>
           )}
           {currentUser ? (
