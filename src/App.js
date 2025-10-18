@@ -12,70 +12,6 @@ function App() {
   const [seats, setSeats] = useState([
     {
       id: 1,
-      title: "Modern Mess - Shaheb Bazar",
-      type: "Mess",
-      location: "Shaheb Bazar, Rajshahi",
-      price: 4500,
-      availability: "Available",
-      image: "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400",
-      images: [
-        "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400",
-        "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400",
-        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400"
-      ],
-      occupancyType: "Double",
-      gender: "Boys",
-      description: "Clean and hygienic mess with home-cooked food. 3 meals included.",
-      amenities: ["WiFi", "AC", "Laundry", "24/7 Security"],
-      contact: "+880 1711-123456",
-      rating: 4.5,
-      vacantSeats: 4,
-      totalSeats: 8
-    },
-    {
-      id: 2,
-      title: "Student House - University Area",
-      type: "House",
-      location: "University Area, Rajshahi",
-      price: 6000,
-      availability: "Available",
-      image: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400",
-      images: [
-        "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400",
-        "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400"
-      ],
-      occupancyType: "Single",
-      gender: "Girls",
-      description: "Furnished single room near Rajshahi University. Perfect for students.",
-      amenities: ["WiFi", "Furnished", "Kitchen Access", "Study Room"],
-      contact: "+880 1811-234567",
-      rating: 4.2,
-      vacantSeats: 2,
-      totalSeats: 2
-    },
-    {
-      id: 3,
-      title: "Green Valley Mess",
-      type: "Mess",
-      location: "Kazla, Rajshahi",
-      price: 3800,
-      availability: "Available",
-      image: "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400",
-      images: [
-        "https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400",
-        "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400"
-      ],
-      occupancyType: "Triple",
-      gender: "Boys",
-      description: "Affordable mess with quality food and friendly environment.",
-      amenities: ["WiFi", "Common Room", "Library", "Medical Facility"],
-      contact: "+880 1911-345678",
-      rating: 4.0,
-      vacantSeats: 3,
-      totalSeats: 6
-    },
-    {
-      id: 4,
       title: 'Cozy Mess near Campus',
       type: 'Mess',
       location: 'Near ABC University',
@@ -92,7 +28,7 @@ function App() {
       totalSeats: 10
     },
     {
-      id: 5,
+      id: 2,
       title: 'Budget-friendly PG',
       type: 'PG',
       location: 'Downtown',
@@ -109,7 +45,7 @@ function App() {
       totalSeats: 4
     },
     {
-      id: 6,
+      id: 3,
       title: 'Shared Rooms Near Metro',
       type: 'Shared',
       location: 'Near Metro Station',
