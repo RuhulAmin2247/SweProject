@@ -109,6 +109,14 @@ const SeatDetails = ({ seat, onBack, onBook }) => {
               {seat.vacantSeats > 0 ? `Book Now (${seat.vacantSeats} left)` : 'Fully Booked'}
             </button>
             <button className="contact-btn">Contact Owner</button>
+            {seat.mapLink && (
+              <button
+                className="map-btn"
+                onClick={() => window.open(seat.mapLink, '_blank')}
+              >
+                Show in Map
+              </button>
+            )}
           </div>
         </div>
       </div>

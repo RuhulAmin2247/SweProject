@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './Header.css';
 
 const Header = ({ onAdminClick, currentUser, isAdmin, onLogin, onLogout }) => {
@@ -10,9 +11,9 @@ const Header = ({ onAdminClick, currentUser, isAdmin, onLogin, onLogout }) => {
           <span>Student Accommodation</span>
         </div>
         <nav className="nav-menu">
-          <a href="#home">Home</a>
-          <a href="#about">About</a>
-          <a href="#contact">Contact</a>
+          <Link to="/" className="nav-link">Home</Link>
+          <Link to="/about" className="nav-link">About</Link>
+          <Link to="/contact" className="nav-link">Contact</Link>
           {isAdmin && (
             <button className="admin-btn" onClick={onAdminClick}>
               🔒 Admin Panel
@@ -20,17 +21,11 @@ const Header = ({ onAdminClick, currentUser, isAdmin, onLogin, onLogout }) => {
           )}
           {currentUser ? (
             <div className="user-menu">
-              <span className="welcome-text">
-                Welcome, {currentUser.name || currentUser.email}
-              </span>
-              <button className="logout-btn" onClick={onLogout}>
-                Logout
-              </button>
+              <Link to="/profile" className="welcome-text">{currentUser.name || currentUser.email}</Link>
+              <button className="logout-btn" onClick={onLogout}>Logout</button>
             </div>
           ) : (
-            <button className="login-btn" onClick={onLogin}>
-              Login
-            </button>
+            <button className="login-btn" onClick={onLogin}>Login</button>
           )}
         </nav>
       </div>

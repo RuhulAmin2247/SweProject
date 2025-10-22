@@ -5,6 +5,9 @@ import defaultImageGroups from './config/defaultImages';
 import Header from './components/Header';
 import Login from './components/Login';
 import Register from './components/Register';
+import About from './components/About';
+import Contact from './components/Contact';
+import Profile from './components/Profile';
 import SeatCard from './components/SeatCard';
 import SeatDetails from './components/SeatDetails';
 import AddSeatForm from './components/AddSeatForm';
@@ -30,6 +33,8 @@ function App() {
       availability: 'Available',
       vacantSeats: 5,
       totalSeats: 10
+      ,
+      mapLink: 'https://www.google.com/maps?q=24.3745,88.6042'
     },
     {
       id: 2,
@@ -47,12 +52,14 @@ function App() {
       availability: 'Available',
       vacantSeats: 1,
       totalSeats: 4
+      ,
+      mapLink: 'https://www.google.com/maps?q=24.3700,88.6060'
     },
     {
       id: 3,
-      title: 'Shared Rooms Near Metro',
+      title: ' bazar mess',
       type: 'Shared',
-      location: 'Near Metro Station',
+      location: 'shaheb bazar',
       price: 1500,
       image: defaultImageGroups[2][0],
       images: defaultImageGroups[2],
@@ -64,6 +71,8 @@ function App() {
       availability: 'Available',
       vacantSeats: 2,
       totalSeats: 6
+      ,
+      mapLink: 'https://www.google.com/maps?q=24.3680,88.6040'
     }
   ]);
 
@@ -238,6 +247,109 @@ function App() {
     );
   }
 
+  // Home component renders the main listing UI
+  const Home = () => (
+    <main className="main-content">
+      <div className="hero-section">
+        <h1>Find Your Perfect Mess/House in Rajshahi</h1>
+        <p>Verified and affordable accommodation for students</p>
+      </div>
+      
+      <SearchBar 
+        searchTerm={filters.search}
+        onSearchChange={(value) => handleFilterChange('search', value)}
+      />
+      
+      <div className="filter-section">
+        <div className="filters">
+          <select 
+            className="filter-select"
+            value={filters.type}
+            onChange={(e) => handleFilterChange('type', e.target.value)}
+          >
+            <option value="">All Types</option>
+            <option value="Mess">Mess</option>
+            <option value="House">House</option>
+          </select>
+          
+          <select 
+            className="filter-select"
+            value={filters.gender}
+            onChange={(e) => handleFilterChange('gender', e.target.value)}
+          >
+            <option value="">All Gender</option>
+            <option value="Boys">Boys</option>
+            <option value="Girls">Girls</option>
+          </select>
+          
+          <select 
+            className="filter-select"
+            value={filters.occupancy}
+            onChange={(e) => handleFilterChange('occupancy', e.target.value)}
+          >
+            <option value="">All Occupancy</option>
+            <option value="Single">Single</option>
+            <option value="Double">Double</option>
+            <option value="Triple">Triple</option>
+            <option value="Quad">Quad</option>
+          </select>
+          
+          <select 
+            className="filter-select"
+            value={filters.location}
+            onChange={(e) => handleFilterChange('location', e.target.value)}
+          >
+            <option value="">All Areas</option>
+            <option value="University Area">University Area</option>
+            <option value="Shaheb Bazar">Shaheb Bazar</option>
+            <option value="Kazla">Kazla</option>
+            <option value="Court Para">Court Para</option>
+          </select>
+             
+          <select 
+            className="filter-select"
+            value={filters.priceRange}
+            onChange={(e) => handleFilterChange('priceRange', e.target.value)}
+          >
+            <option value="">Price Range</option>
+            <option value="Under 4000">Under ৳4000</option>
+            <option value="4000-5000">৳4000-5000</option>
+            <option value="5000-6000">৳5000-6000</option>
+            <option value="Above 6000">Above ৳6000</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="results-info">
+        <p>{filteredSeats.length} properties found</p>
+      </div>
+
+      <div className="seats-grid">
+        {filteredSeats.map(seat => (
+          <SeatCard 
+            key={seat.id} 
+            seat={seat} 
+            onClick={() => handleSeatClick(seat)} 
+          />
+        ))}
+      </div>
+
+      {filteredSeats.length === 0 && (
+        <div className="no-results">
+          <h3>No properties found</h3>
+          <p>Try adjusting your filters or search terms</p>
+        </div>
+      )}
+
+      <button 
+        className="add-seat-btn"
+        onClick={() => setShowAddForm(true)}
+      >
+        + Add Your Mess/House
+      </button>
+    </main>
+  );
+
   return (
     <Router>
       <div className="App">
@@ -265,109 +377,15 @@ function App() {
         <div style={{ position: 'absolute', top: 12, right: 12 }}>
           <Link to="/debug-firebase" style={{ fontSize: 12 }}>Firebase Debug</Link>
         </div>
-      <main className="main-content">
-        <div className="hero-section">
-          <h1>Find Your Perfect Mess/House in Rajshahi</h1>
-          <p>Verified and affordable accommodation for students</p>
-        </div>
-        
-        <SearchBar 
-          searchTerm={filters.search}
-          onSearchChange={(value) => handleFilterChange('search', value)}
-        />
-        
-        <div className="filter-section">
-          <div className="filters">
-            <select 
-              className="filter-select"
-              value={filters.type}
-              onChange={(e) => handleFilterChange('type', e.target.value)}
-            >
-              <option value="">All Types</option>
-              <option value="Mess">Mess</option>
-              <option value="House">House</option>
-            </select>
-            
-            <select 
-              className="filter-select"
-              value={filters.gender}
-              onChange={(e) => handleFilterChange('gender', e.target.value)}
-            >
-              <option value="">All Gender</option>
-              <option value="Boys">Boys</option>
-              <option value="Girls">Girls</option>
-            </select>
-            
-            <select 
-              className="filter-select"
-              value={filters.occupancy}
-              onChange={(e) => handleFilterChange('occupancy', e.target.value)}
-            >
-              <option value="">All Occupancy</option>
-              <option value="Single">Single</option>
-              <option value="Double">Double</option>
-              <option value="Triple">Triple</option>
-              <option value="Quad">Quad</option>
-            </select>
-            
-            <select 
-              className="filter-select"
-              value={filters.location}
-              onChange={(e) => handleFilterChange('location', e.target.value)}
-            >
-              <option value="">All Areas</option>
-              <option value="University Area">University Area</option>
-              <option value="Shaheb Bazar">Shaheb Bazar</option>
-              <option value="Kazla">Kazla</option>
-              <option value="Court Para">Court Para</option>
-            </select>
-               
-            <select 
-              className="filter-select"
-              value={filters.priceRange}
-              onChange={(e) => handleFilterChange('priceRange', e.target.value)}
-            >
-              <option value="">Price Range</option>
-              <option value="Under 4000">Under ৳4000</option>
-              <option value="4000-5000">৳4000-5000</option>
-              <option value="5000-6000">৳5000-6000</option>
-              <option value="Above 6000">Above ৳6000</option>
-            </select>
-          </div>
-        </div>
 
-        <div className="results-info">
-          <p>{filteredSeats.length} properties found</p>
-        </div>
-
-        <div className="seats-grid">
-          {filteredSeats.map(seat => (
-            <SeatCard 
-              key={seat.id} 
-              seat={seat} 
-              onClick={() => handleSeatClick(seat)} 
-            />
-          ))}
-        </div>
-
-        {filteredSeats.length === 0 && (
-          <div className="no-results">
-            <h3>No properties found</h3>
-            <p>Try adjusting your filters or search terms</p>
-          </div>
-        )}
-
-        <button 
-          className="add-seat-btn"
-          onClick={() => setShowAddForm(true)}
-        >
-          + Add Your Mess/House
-        </button>
-      </main>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/profile" element={<Profile user={currentUser} />} />
+          <Route path="/debug-firebase" element={<FirebaseDebug />} />
+        </Routes>
       </div>
-      <Routes>
-        <Route path="/debug-firebase" element={<FirebaseDebug />} />
-      </Routes>
     </Router>
   );
 }

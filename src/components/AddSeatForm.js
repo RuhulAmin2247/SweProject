@@ -7,6 +7,7 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
     title: '',
     type: 'Mess',
     location: '',
+    mapLink: '',
     price: '',
     description: '',
     amenities: [],
@@ -169,6 +170,19 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
               placeholder="e.g., Shaheb Bazar, Rajshahi"
               required
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="mapLink">Google Maps Link (optional)</label>
+            <input
+              type="url"
+              id="mapLink"
+              name="mapLink"
+              value={formData.mapLink}
+              onChange={handleInputChange}
+              placeholder="https://www.google.com/maps?q=24.3745,88.6042"
+            />
+            <small className="help-text">Paste a Google Maps link or use lat,long with https://www.google.com/maps?q=lat,lng</small>
           </div>
 
           <div className="form-group">
