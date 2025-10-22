@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import './App.css';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import defaultImageGroups from './config/defaultImages';
 import Header from './components/Header';
+import Login from './components/Login';
+import Register from './components/Register';
 import SeatCard from './components/SeatCard';
 import SeatDetails from './components/SeatDetails';
 import AddSeatForm from './components/AddSeatForm';
 import AdminPanel from './components/AdminPanel';
 import SearchBar from './components/SearchBar';
+import FirebaseDebug from './components/FirebaseDebug';
 
 function App() {
   const [seats, setSeats] = useState([
@@ -76,6 +80,9 @@ function App() {
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
 
   const handleSeatClick = (seat) => {
     setSelectedSeat(seat);
@@ -97,6 +104,35 @@ function App() {
   const handleBookSeat = (id) => {
     setSeats(prev => prev.map(s => s.id === id ? { ...s, availability: 'Booked' } : s));
     setSelectedSeat(null);
+  };
+
+  // Authentication handlers
+  const handleOpenLogin = () => {
+    setShowLogin(true);
+    setShowRegister(false);
+  };
+
+  const handleCloseLogin = () => {
+    setShowLogin(false);
+  };
+
+  const handleOpenRegister = () => {
+    setShowRegister(true);
+    setShowLogin(false);
+  };
+
+  const handleCloseRegister = () => {
+    setShowRegister(false);
+  };
+
+  const handleLogin = (userData) => {
+    setCurrentUser(userData);
+    setShowLogin(false);
+    setShowRegister(false);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -203,8 +239,32 @@ function App() {
   }
 
   return (
-    <div className="App">
-      <Header onAdminClick={() => setShowAdminPanel(true)} />
+    <Router>
+      <div className="App">
+        <Header 
+          onAdminClick={() => setShowAdminPanel(true)} 
+          currentUser={currentUser}
+          isAdmin={currentUser && currentUser.userType === 'owner'}
+          onLogin={handleOpenLogin}
+          onLogout={handleLogout}
+        />
+        {showLogin && (
+          <Login 
+            onLogin={handleLogin} 
+            onClose={handleCloseLogin} 
+            onSwitchToRegister={handleOpenRegister}
+          />
+        )}
+        {showRegister && (
+          <Register
+            onRegister={(user) => { handleLogin(user); }}
+            onClose={handleCloseRegister}
+            onSwitchToLogin={handleOpenLogin}
+          />
+        )}
+        <div style={{ position: 'absolute', top: 12, right: 12 }}>
+          <Link to="/debug-firebase" style={{ fontSize: 12 }}>Firebase Debug</Link>
+        </div>
       <main className="main-content">
         <div className="hero-section">
           <h1>Find Your Perfect Mess/House in Rajshahi</h1>
@@ -304,7 +364,11 @@ function App() {
           + Add Your Mess/House
         </button>
       </main>
-    </div>
+      </div>
+      <Routes>
+        <Route path="/debug-firebase" element={<FirebaseDebug />} />
+      </Routes>
+    </Router>
   );
 }
 

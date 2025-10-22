@@ -1,29 +1,36 @@
-// Firebase Connection Test
-// Open this in your browser console to test Firebase
+// Firebase Connection Test (web)
+// Tries to sign in first; if user not found, registers a test user.
+// Returns a structured result for UI consumption.
 
-import { registerUser } from '../firebase/auth';
+import { registerUser, loginUser } from './auth';
 
-// Test function
 export const testFirebaseConnection = async () => {
+  const email = 'test@example.com';
+  const password = 'test123';
+
   try {
-    console.log('🔥 Testing Firebase connection...');
-    
-    // Try to register a test user
-    const testData = await registerUser('test@example.com', 'test123', {
-      name: 'Test User',
-      userType: 'student',
-      phone: '1234567890'
-    });
-    
-    console.log('✅ Firebase connection successful!', testData);
-    return testData;
+    // Try sign-in first
+    try {
+      const signInData = await loginUser(email, password);
+      return { success: true, action: 'signin', user: signInData };
+    } catch (signinError) {
+      // If user doesn't exist, register
+      if (signinError && signinError.code === 'auth/user-not-found') {
+        const registered = await registerUser(email, password, {
+          name: 'Test User',
+          userType: 'student',
+          phone: '1234567890'
+        });
+        return { success: true, action: 'register', user: registered };
+      }
+      // Other signin error
+      return { success: false, error: { code: signinError.code, message: signinError.message } };
+    }
   } catch (error) {
-    console.error('❌ Firebase connection failed:', error);
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
-    return { error: error.message };
+    console.error('Full Firebase test error object:', error);
+    return { success: false, error: { code: error.code, message: error.message, full: error } };
   }
 };
 
-// Call this function in browser console: testFirebaseConnection()
+// Expose for quick debugging in browser console
 window.testFirebaseConnection = testFirebaseConnection;

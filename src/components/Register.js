@@ -101,7 +101,8 @@ const Register = ({ onRegister, onClose, onSwitchToLogin }) => {
     } catch (error) {
       console.error('Registration error:', error);
       setErrors({ 
-        general: getAuthErrorMessage(error.code) 
+        general: getAuthErrorMessage(error.code),
+        code: error.code
       });
     } finally {
       setIsLoading(false);
@@ -120,7 +121,10 @@ const Register = ({ onRegister, onClose, onSwitchToLogin }) => {
         <form onSubmit={handleSubmit} className="register-form">
           {errors.general && (
             <div className="error-message general-error">
-              {errors.general}
+              <div>{errors.general}</div>
+              {errors.code && (
+                <div style={{ fontSize: 12, color: '#a00', marginTop: 6 }}>Error code: {errors.code}</div>
+              )}
             </div>
           )}
 
