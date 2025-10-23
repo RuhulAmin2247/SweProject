@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { loginUser, getAuthErrorMessage } from '../firebase/auth';
+import { loginUser, getAuthErrorMessage, sendResetEmail } from '../firebase/auth';
 import './Login.css';
 
 const Login = ({ onLogin, onClose, onSwitchToRegister }) => {
@@ -9,6 +9,7 @@ const Login = ({ onLogin, onClose, onSwitchToRegister }) => {
   });
 
   const [errors, setErrors] = useState({});
+  const [infoMessage, setInfoMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (e) => {
@@ -18,6 +19,8 @@ const Login = ({ onLogin, onClose, onSwitchToRegister }) => {
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
+    // Clear info messages when user edits inputs
+    if (infoMessage) setInfoMessage('');
   };
 
   const validateForm = () => {
@@ -64,6 +67,26 @@ const Login = ({ onLogin, onClose, onSwitchToRegister }) => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      setErrors({ ...errors, email: 'Enter your email to reset password' });
+      return;
+    }
+
+    try {
+      await sendResetEmail(formData.email);
+      setInfoMessage('Password reset email sent. Check your inbox.');
+    } catch (error) {
+      console.error('Reset error:', error);
+      // Special case: dev admin credentials
+      if (process.env.REACT_APP_DEV_ADMIN === 'true' && formData.email === 'admin@gmail.com') {
+        setInfoMessage('This is the local dev admin account. Use admin@gmail.com / 123456 to sign in locally.');
+      } else {
+        setErrors({ general: getAuthErrorMessage(error.code || error.message), code: error.code });
+      }
+    }
+  };
+
   return (
     <div className="login-overlay">
       <div className="login-container">
@@ -82,6 +105,12 @@ const Login = ({ onLogin, onClose, onSwitchToRegister }) => {
               )}
             </div>
           )}
+
+            {infoMessage && (
+              <div className="info-message" role="status">
+                {infoMessage}
+              </div>
+            )}
 
           <div className="form-group">
             <label htmlFor="email">Email Address</label>
@@ -130,7 +159,7 @@ const Login = ({ onLogin, onClose, onSwitchToRegister }) => {
                 Register here
               </button>
             </p>
-            <button type="button" className="forgot-password">
+            <button type="button" className="forgot-password" onClick={handleForgotPassword}>
               Forgot Password?
             </button>
           </div>

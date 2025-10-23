@@ -161,6 +161,17 @@
   text-align: center;
 }
 
+.info-message {
+  background: rgba(102, 126, 234, 0.08);
+  border: 1px solid rgba(102, 126, 234, 0.18);
+  color: #1f3c88;
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-weight: 600;
+}
+
 .login-btn-submit {
   width: 100%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

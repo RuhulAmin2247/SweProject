@@ -1,6 +1,7 @@
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
+  sendPasswordResetEmail,
   signOut, 
   onAuthStateChanged,
   updateProfile
@@ -119,6 +120,30 @@ export const logoutUser = async () => {
     await signOut(auth);
   } catch (error) {
     console.error('Logout error:', error);
+    throw error;
+  }
+};
+
+// Send password reset email
+export const sendResetEmail = async (email) => {
+  try {
+    // Build an actionCodeSettings object so the email link redirects back to
+    // the app's reset page. This makes the link open the SPA and allows
+    // the user to complete the password reset inside the app.
+    // Ensure the domain (localhost or your hosting domain) is added to
+    // Firebase Console > Authentication > Authorized domains.
+    const continueUrl = (typeof window !== 'undefined' && window.location ? window.location.origin : '') + '/reset-password';
+    const actionCodeSettings = {
+      // The URL the user will be redirected to after clicking the reset link
+      url: continueUrl,
+      // This must be true to handle the code in the app
+      handleCodeInApp: true
+    };
+
+    await sendPasswordResetEmail(auth, email, actionCodeSettings);
+    return { success: true };
+  } catch (error) {
+    console.error('Password reset error:', error);
     throw error;
   }
 };

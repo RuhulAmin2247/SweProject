@@ -8,6 +8,7 @@ import Register from './components/Register';
 import About from './components/About';
 import Contact from './components/Contact';
 import Profile from './components/Profile';
+import ResetPassword from './components/ResetPassword';
 import SeatCard from './components/SeatCard';
 import SeatDetails from './components/SeatDetails';
 import AddSeatForm from './components/AddSeatForm';
@@ -431,6 +432,7 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/profile" element={<Profile user={currentUser} />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/debug-firebase" element={<FirebaseDebug />} />
         </Routes>
       </div>
