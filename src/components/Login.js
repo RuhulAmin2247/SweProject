@@ -101,9 +101,11 @@ const Login = ({ onLogin, onClose, onSwitchToRegister }) => {
       setInfoMessage('Password reset email sent. Check your inbox.');
     } catch (error) {
       console.error('Reset error:', error);
-      // Special case: dev admin credentials
-      if (process.env.REACT_APP_DEV_ADMIN === 'true' && formData.email === 'admin@gmail.com') {
-        setInfoMessage('This is the local dev admin account. Use admin@gmail.com / 123456 to sign in locally.');
+      // Special case: dev admin credentials - display hint based on env variables
+      if (process.env.REACT_APP_DEV_ADMIN === 'true') {
+        const hintEmail = process.env.REACT_APP_DEV_ADMIN_EMAIL || 'admin@gmail.com';
+        // Avoid showing secrets in UI; only give email hint
+        setInfoMessage(`This is the local dev admin account. Use ${hintEmail} with your local dev password to sign in.`);
       } else {
         setErrors({ general: getAuthErrorMessage(error.code || error.message), code: error.code });
       }
