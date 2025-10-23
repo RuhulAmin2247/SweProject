@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import defaultImageGroups from './config/defaultImages';
@@ -9,6 +9,7 @@ import About from './components/About';
 import Contact from './components/Contact';
 import Profile from './components/Profile';
 import ResetPassword from './components/ResetPassword';
+import VerifyEmail from './components/VerifyEmail';
 import SeatCard from './components/SeatCard';
 import SeatDetails from './components/SeatDetails';
 import AddSeatForm from './components/AddSeatForm';
@@ -94,6 +95,24 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+
+  // Keep currentUser in sync with Firebase auth state (auto-refresh after verification)
+  useEffect(() => {
+    let unsub;
+    try {
+      // Lazy-import to avoid cyclic import issues
+      const { onAuthStateChange } = require('./firebase/auth');
+      unsub = onAuthStateChange((user) => {
+        setCurrentUser(user);
+      });
+    } catch (err) {
+      console.warn('Failed to subscribe to auth state changes', err);
+    }
+
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, []);
 
   const handleSeatClick = (seat) => {
     setSelectedSeat(seat);
@@ -433,6 +452,7 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/profile" element={<Profile user={currentUser} />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/debug-firebase" element={<FirebaseDebug />} />
         </Routes>
       </div>

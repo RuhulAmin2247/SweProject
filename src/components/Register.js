@@ -16,6 +16,7 @@ const Register = ({ onRegister, onClose, onSwitchToLogin }) => {
 
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [infoMessage, setInfoMessage] = useState('');
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -85,7 +86,7 @@ const Register = ({ onRegister, onClose, onSwitchToLogin }) => {
     
     try {
       // Register user with Firebase
-      const userData = await registerUser(formData.email, formData.password, {
+      await registerUser(formData.email, formData.password, {
         name: formData.name,
         userType: formData.userType,
         phone: formData.phone,
@@ -95,8 +96,8 @@ const Register = ({ onRegister, onClose, onSwitchToLogin }) => {
         })
       });
       
-      // Call the parent component's onRegister function
-      onRegister(userData);
+  // Do not auto-login. Inform the user to verify their email first.
+  setInfoMessage('Account created. A verification email has been sent — please check your inbox and verify before signing in.');
       
     } catch (error) {
       console.error('Registration error:', error);
@@ -126,6 +127,9 @@ const Register = ({ onRegister, onClose, onSwitchToLogin }) => {
                 <div style={{ fontSize: 12, color: '#a00', marginTop: 6 }}>Error code: {errors.code}</div>
               )}
             </div>
+          )}
+          {infoMessage && (
+            <div className="info-message">{infoMessage}</div>
           )}
 
           <div className="form-group">

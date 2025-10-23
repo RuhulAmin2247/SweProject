@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { loginUser, getAuthErrorMessage, sendResetEmail } from '../firebase/auth';
+import { loginUser, getAuthErrorMessage, sendResetEmail, resendVerificationEmail } from '../firebase/auth';
 import './Login.css';
 
 const Login = ({ onLogin, onClose, onSwitchToRegister }) => {
@@ -58,12 +58,35 @@ const Login = ({ onLogin, onClose, onSwitchToRegister }) => {
       
     } catch (error) {
       console.error('Login error:', error);
-      setErrors({ 
-        general: getAuthErrorMessage(error.code),
-        code: error.code
-      });
+      // If email not verified, show inline message and provide resend option
+      if (error.code === 'auth/email-not-verified') {
+        setInfoMessage('Your email is not verified. Check your inbox or resend the verification email.');
+        // store the firebase user returned on the error for resending
+        setErrors({ ...errors, _verifyUser: error.user });
+      } else {
+        setErrors({ 
+          general: getAuthErrorMessage(error.code),
+          code: error.code
+        });
+      }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    const user = errors._verifyUser;
+    if (!user) {
+      setErrors({ ...errors, general: 'No user available to resend verification.' });
+      return;
+    }
+
+    try {
+      await resendVerificationEmail(user);
+      setInfoMessage('Verification email resent. Check your inbox.');
+    } catch (err) {
+      console.error('Resend error:', err);
+      setErrors({ ...errors, general: getAuthErrorMessage(err.code || err.message) });
     }
   };
 
@@ -108,7 +131,12 @@ const Login = ({ onLogin, onClose, onSwitchToRegister }) => {
 
             {infoMessage && (
               <div className="info-message" role="status">
-                {infoMessage}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
+                      <span>{infoMessage}</span>
+                      {errors._verifyUser && (
+                        <button type="button" className="link-btn" onClick={handleResendVerification}>Resend</button>
+                      )}
+                    </div>
               </div>
             )}
 

@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from './config';
+import { sendEmailVerification as firebaseSendEmailVerification } from 'firebase/auth';
 
 // Register a new user
 export const registerUser = async (email, password, userData) => {
@@ -20,6 +21,14 @@ export const registerUser = async (email, password, userData) => {
     await updateProfile(user, {
       displayName: userData.name
     });
+
+    // Send verification email
+    try {
+      const continueUrl = (typeof window !== 'undefined' && window.location ? window.location.origin : '') + '/verify-email';
+      await firebaseSendEmailVerification(user, { url: continueUrl, handleCodeInApp: true });
+    } catch (ve) {
+      console.warn('Failed to send verification email:', ve);
+    }
 
     // Store additional user data in Firestore
     const userDocRef = doc(db, 'users', user.uid);
@@ -37,6 +46,13 @@ export const registerUser = async (email, password, userData) => {
       })
     });
 
+    // Sign the user out so they cannot access the app until they verify their email
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.warn('Failed to sign out after registration:', e);
+    }
+
     return {
       uid: user.uid,
       email: user.email,
@@ -52,6 +68,24 @@ export const registerUser = async (email, password, userData) => {
     console.error('Registration error:', error);
     throw error;
   }
+};
+
+// Resend verification email for a user
+export const resendVerificationEmail = async (user) => {
+  try {
+    if (!user) throw new Error('No user provided');
+    const continueUrl = (typeof window !== 'undefined' && window.location ? window.location.origin : '') + '/verify-email';
+    await firebaseSendEmailVerification(user, { url: continueUrl, handleCodeInApp: true });
+    return { success: true };
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    throw error;
+  }
+};
+
+// Helper to check whether the current Firebase user has verified their email
+export const isEmailVerified = (user) => {
+  return !!(user && user.emailVerified);
 };
 
 // Sign in existing user
@@ -80,6 +114,15 @@ export const loginUser = async (email, password) => {
 
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
+
+    // Ensure the user has verified their email before proceeding
+    if (!user.emailVerified) {
+      // Include the firebase user so caller can resend verification if needed
+      const err = new Error('Email not verified');
+      err.code = 'auth/email-not-verified';
+      err.user = user;
+      throw err;
+    }
 
     // Get additional user data from Firestore
     const userDocRef = doc(db, 'users', user.uid);
@@ -152,6 +195,12 @@ export const sendResetEmail = async (email) => {
 export const onAuthStateChange = (callback) => {
   return onAuthStateChanged(auth, async (user) => {
     if (user) {
+      // If the user's email is not verified, treat them as signed out so they
+      // cannot access the application until verification completes.
+      if (!user.emailVerified) {
+        callback(null);
+        return;
+      }
       // User is signed in, get additional data from Firestore
       const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
@@ -203,6 +252,8 @@ export const getAuthErrorMessage = (errorCode) => {
       return 'Password should be at least 6 characters long.';
     case 'auth/invalid-email':
       return 'Invalid email address.';
+    case 'auth/email-not-verified':
+      return 'Your email address is not verified. Please check your inbox.';
     case 'auth/too-many-requests':
       return 'Too many failed attempts. Please try again later.';
     default:
