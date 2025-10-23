@@ -56,6 +56,27 @@ export const registerUser = async (email, password, userData) => {
 // Sign in existing user
 export const loginUser = async (email, password) => {
   try {
+    // Dev-only admin override: enable by setting REACT_APP_DEV_ADMIN=true in .env
+    // WARNING: This is insecure and MUST NOT be used in production. It's provided
+    // as a convenience so you can log in locally as the admin without creating
+    // a Firebase user. To enable, create a .env file with:
+    // REACT_APP_DEV_ADMIN=true
+    // Use credentials: admin@gmail.com / 123456
+    if (process.env.REACT_APP_DEV_ADMIN === 'true') {
+      const DEV_ADMIN_EMAIL = 'admin@gmail.com';
+      const DEV_ADMIN_PASSWORD = '123456';
+      if (email === DEV_ADMIN_EMAIL && password === DEV_ADMIN_PASSWORD) {
+        // Return a fake admin user object compatible with the rest of the app
+        return {
+          uid: 'dev-admin',
+          email: DEV_ADMIN_EMAIL,
+          name: 'Local Admin',
+          userType: 'owner',
+          phone: ''
+        };
+      }
+    }
+
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 

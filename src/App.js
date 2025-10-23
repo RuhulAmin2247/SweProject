@@ -89,6 +89,7 @@ function App() {
   const [selectedSeat, setSelectedSeat] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
@@ -102,8 +103,18 @@ function App() {
   };
 
   const handleAddSeat = (newSeat) => {
-    setSeats(prev => [{ id: prev.length + 1, ...newSeat }, ...prev]);
+    // Submit as pending request for admin approval
+    const requestWithId = {
+      ...newSeat,
+      id: Date.now(),
+      rating: 0,
+      status: 'pending',
+      submittedAt: new Date().toISOString(),
+      ownerInfo: newSeat.ownerInfo || { name: currentUser?.name || '', nidNumber: newSeat.nidNumber || '', holdingNumber: newSeat.holdingNumber || '' }
+    };
+    setPendingRequests(prev => [requestWithId, ...prev]);
     setShowAddForm(false);
+    alert('Your property request has been submitted for admin approval!');
   };
 
   const handleRemoveSeat = (id) => {
@@ -113,6 +124,40 @@ function App() {
   const handleBookSeat = (id) => {
     setSeats(prev => prev.map(s => s.id === id ? { ...s, availability: 'Booked' } : s));
     setSelectedSeat(null);
+  };
+
+  // Admin actions for pending requests
+  const handleApproveRequest = (requestId) => {
+    const request = pendingRequests.find(r => r.id === requestId);
+    if (!request) return;
+
+    // Check if holding number exists among published seats' ownerInfo.holdingNumber
+    const holdingToCheck = request.ownerInfo?.holdingNumber || request.holdingNumber || '';
+    const exists = seats.some(s => s.ownerInfo && s.ownerInfo.holdingNumber === holdingToCheck);
+
+    if (!holdingToCheck) {
+      if (!window.confirm('No holding number provided. Approve anyway?')) return;
+    } else if (!exists) {
+      // If holding number not found, ask admin whether to reject
+      if (!window.confirm('Holding number not found among published properties. Approve anyway?')) {
+        // remove the request
+        setPendingRequests(prev => prev.filter(r => r.id !== requestId));
+        return;
+      }
+    }
+
+    // Publish the request
+    const newSeat = {
+      ...request,
+      id: Math.max(0, ...seats.map(s => s.id)) + 1,
+      status: 'published'
+    };
+    setSeats(prev => [newSeat, ...prev]);
+    setPendingRequests(prev => prev.filter(r => r.id !== requestId));
+  };
+
+  const handleRejectRequest = (requestId) => {
+    setPendingRequests(prev => prev.filter(r => r.id !== requestId));
   };
 
   // Authentication handlers
@@ -240,7 +285,10 @@ function App() {
       <div className="App">
         <AdminPanel 
           seats={seats}
+          pendingRequests={pendingRequests}
           onRemoveSeat={handleRemoveSeat}
+          onApproveRequest={handleApproveRequest}
+          onRejectRequest={handleRejectRequest}
           onBack={() => setShowAdminPanel(false)}
         />
       </div>

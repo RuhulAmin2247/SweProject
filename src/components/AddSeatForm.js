@@ -7,6 +7,7 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
     title: '',
     type: 'Mess',
     location: '',
+    holdingNumber: '',
     mapLink: '',
     price: '',
     description: '',
@@ -170,6 +171,19 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
               placeholder="e.g., Shaheb Bazar, Rajshahi"
               required
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="holdingNumber">Holding Number (For Owners)</label>
+            <input
+              type="text"
+              id="holdingNumber"
+              name="holdingNumber"
+              value={formData.holdingNumber}
+              onChange={handleInputChange}
+              placeholder="e.g., CP-008"
+            />
+            <small className="help-text">If you're the property owner, add your holding number for admin verification.</small>
           </div>
 
           <div className="form-group">
