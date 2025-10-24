@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+// defaultImageGroups removed — seats are loaded from Firestore
 import defaultImageGroups from './config/defaultImages';
 import Header from './components/Header';
 import Login from './components/Login';
@@ -14,6 +15,7 @@ import SeatCard from './components/SeatCard';
 import SeatDetails from './components/SeatDetails';
 import AddSeatForm from './components/AddSeatForm';
 import AdminPanel from './components/AdminPanel';
+import ProtectedRoute from './components/ProtectedRoute';
 import SearchBar from './components/SearchBar';
 import FirebaseDebug from './components/FirebaseDebug';
 
@@ -34,8 +36,7 @@ function App() {
       rating: 4.2,
       availability: 'Available',
       vacantSeats: 5,
-      totalSeats: 10
-      ,
+      totalSeats: 10,
       mapLink: 'https://www.google.com/maps?q=24.3745,88.6042'
     },
     {
@@ -53,15 +54,14 @@ function App() {
       rating: 4.0,
       availability: 'Available',
       vacantSeats: 1,
-      totalSeats: 4
-      ,
+      totalSeats: 4,
       mapLink: 'https://www.google.com/maps?q=24.3700,88.6060'
     },
     {
       id: 3,
-      title: ' bazar mess',
+      title: 'Bazar Mess',
       type: 'Shared',
-      location: 'shaheb bazar',
+      location: 'Shaheb Bazar',
       price: 1500,
       image: defaultImageGroups[2][0],
       images: defaultImageGroups[2],
@@ -72,8 +72,7 @@ function App() {
       rating: 3.8,
       availability: 'Available',
       vacantSeats: 2,
-      totalSeats: 6
-      ,
+      totalSeats: 6,
       mapLink: 'https://www.google.com/maps?q=24.3680,88.6040'
     }
   ]);
@@ -114,63 +113,49 @@ function App() {
     };
   }, []);
 
+  // No Firestore subscriptions in this in-memory mode
+  useEffect(() => {
+    // keep existing in-memory defaults
+  }, []);
+
+  // debug banner counts
+  const debugBanner = (
+    <div style={{ position: 'fixed', left: 12, bottom: 12, background: 'rgba(0,0,0,0.6)', color: 'white', padding: '8px 10px', borderRadius: 8, fontSize: 12, zIndex: 9999 }}>
+      Seats: {seats.length} | Pending: {pendingRequests.length}
+    </div>
+  );
+
   const handleSeatClick = (seat) => {
+    if (!currentUser) {
+      // redirect anonymous users to login and return to home (or a detail path if you add one)
+      window.location.href = `/login?returnTo=${encodeURIComponent('/')}`;
+      return;
+    }
     setSelectedSeat(seat);
   };
 
-  const handleBackToList = () => {
-    setSelectedSeat(null);
+  const handleBookSeat = (seatId) => {
+    setSeats(prev => prev.map(s => {
+      if (s.id !== seatId) return s;
+      const vacant = Number(s.vacantSeats || 0);
+      const total = Number(s.totalSeats || 0);
+      const newVacant = Math.max(0, vacant - 1);
+      return { ...s, vacantSeats: newVacant, availability: newVacant === 0 ? 'Full' : 'Available' };
+    }));
   };
 
-  const handleAddSeat = (newSeat) => {
-    // Submit as pending request for admin approval
-    const requestWithId = {
-      ...newSeat,
-      id: Date.now(),
-      rating: 0,
-      status: 'pending',
-      submittedAt: new Date().toISOString(),
-      ownerInfo: newSeat.ownerInfo || { name: currentUser?.name || '', nidNumber: newSeat.nidNumber || '', holdingNumber: newSeat.holdingNumber || '' }
-    };
-    setPendingRequests(prev => [requestWithId, ...prev]);
-    setShowAddForm(false);
-    alert('Your property request has been submitted for admin approval!');
+  const handleRemoveSeat = (seatId) => {
+    setSeats(prev => prev.filter(s => s.id !== seatId));
   };
 
-  const handleRemoveSeat = (id) => {
-    setSeats(prev => prev.filter(s => s.id !== id));
-  };
-
-  const handleBookSeat = (id) => {
-    setSeats(prev => prev.map(s => s.id === id ? { ...s, availability: 'Booked' } : s));
-    setSelectedSeat(null);
-  };
-
-  // Admin actions for pending requests
   const handleApproveRequest = (requestId) => {
-    const request = pendingRequests.find(r => r.id === requestId);
-    if (!request) return;
-
-    // Check if holding number exists among published seats' ownerInfo.holdingNumber
-    const holdingToCheck = request.ownerInfo?.holdingNumber || request.holdingNumber || '';
-    const exists = seats.some(s => s.ownerInfo && s.ownerInfo.holdingNumber === holdingToCheck);
-
-    if (!holdingToCheck) {
-      if (!window.confirm('No holding number provided. Approve anyway?')) return;
-    } else if (!exists) {
-      // If holding number not found, ask admin whether to reject
-      if (!window.confirm('Holding number not found among published properties. Approve anyway?')) {
-        // remove the request
-        setPendingRequests(prev => prev.filter(r => r.id !== requestId));
-        return;
-      }
-    }
-
-    // Publish the request
+    const req = pendingRequests.find(r => r.id === requestId);
+    if (!req) return;
+    // convert pending request into an active seat/listing
     const newSeat = {
-      ...request,
-      id: Math.max(0, ...seats.map(s => s.id)) + 1,
-      status: 'published'
+      ...req,
+      status: 'approved',
+      availability: (Number(req.vacantSeats || 0) > 0) ? 'Available' : 'Full'
     };
     setSeats(prev => [newSeat, ...prev]);
     setPendingRequests(prev => prev.filter(r => r.id !== requestId));
@@ -180,105 +165,68 @@ function App() {
     setPendingRequests(prev => prev.filter(r => r.id !== requestId));
   };
 
-  // Authentication handlers
-  const handleOpenLogin = () => {
-    setShowLogin(true);
-    setShowRegister(false);
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleCloseLogin = () => {
-    setShowLogin(false);
-  };
+  const handleOpenLogin = () => setShowLogin(true);
+  const handleCloseLogin = () => setShowLogin(false);
+  const handleOpenRegister = () => setShowRegister(true);
+  const handleCloseRegister = () => setShowRegister(false);
+  const handleLogin = (user) => setCurrentUser(user);
+  const handleLogout = () => setCurrentUser(null);
 
-  const handleOpenRegister = () => {
-    setShowRegister(true);
-    setShowLogin(false);
-  };
-
-  const handleCloseRegister = () => {
-    setShowRegister(false);
-  };
-
-  const handleLogin = (userData) => {
-    setCurrentUser(userData);
-    setShowLogin(false);
-    setShowRegister(false);
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-  };
-
-  const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterType]: value
-    }));
-  };
-
-  const filteredSeats = seats.filter(seat => {
-    // Only show available seats (remove booked ones from main listing)
-    if (seat.availability === 'Booked') return false;
-
-    // Filter by type
-    if (filters.type && filters.type !== 'All Types' && seat.type !== filters.type) {
-      return false;
+  const filteredSeats = seats.filter(s => {
+    if (filters.type && filters.type !== '' && s.type !== filters.type) return false;
+    if (filters.gender && filters.gender !== '' && s.gender !== filters.gender) return false;
+    if (filters.occupancy && filters.occupancy !== '' && s.occupancyType !== filters.occupancy) return false;
+    if (filters.location && filters.location !== '' && s.location !== filters.location) return false;
+    if (filters.search && filters.search.trim() !== '') {
+      const q = filters.search.toLowerCase();
+      if (!(`${s.title}`.toLowerCase().includes(q) || `${s.location}`.toLowerCase().includes(q))) return false;
     }
-
-    // Filter by gender
-    if (filters.gender && filters.gender !== 'All Gender' && seat.gender !== filters.gender) {
-      return false;
-    }
-
-    // Filter by location
-    if (filters.location && filters.location !== 'All Areas') {
-      if (!seat.location.includes(filters.location)) return false;
-    }
-
-    // Filter by occupancy
-    if (filters.occupancy && filters.occupancy !== 'All Occupancy' && seat.occupancyType !== filters.occupancy) {
-      return false;
-    }
-
-    // Filter by price range
-    if (filters.priceRange && filters.priceRange !== 'Price Range') {
-      const price = seat.price;
+    if (filters.priceRange && filters.priceRange !== '') {
+      const p = Number(s.price || 0);
       switch (filters.priceRange) {
         case 'Under 4000':
-          if (price >= 4000) return false;
+          if (!(p < 4000)) return false;
           break;
         case '4000-5000':
-          if (price < 4000 || price > 5000) return false;
+          if (!(p >= 4000 && p <= 5000)) return false;
           break;
         case '5000-6000':
-          if (price < 5000 || price > 6000) return false;
+          if (!(p >= 5000 && p <= 6000)) return false;
           break;
         case 'Above 6000':
-          if (price <= 6000) return false;
+          if (!(p > 6000)) return false;
           break;
         default:
           break;
       }
     }
-
-    // Filter by search text
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      const searchableText = [
-        seat.title,
-        seat.location,
-        seat.description,
-        ...seat.amenities,
-        seat.type,
-        seat.occupancyType,
-        seat.gender
-      ].join(' ').toLowerCase();
-      
-      if (!searchableText.includes(searchTerm)) return false;
-    }
-
     return true;
   });
+
+  const handleBackToList = () => {
+    setSelectedSeat(null);
+  };
+
+  const handleAddSeat = (newSeat) => {
+    // Submit as pending request for admin approval (in-memory)
+    const requestWithId = {
+      ...newSeat,
+      id: Date.now(),
+      rating: 0,
+      status: 'pending',
+      submittedAt: new Date().toISOString(),
+      ownerInfo: newSeat.ownerInfo || { name: currentUser?.name || '', nidNumber: newSeat.nidNumber || '', holdingNumber: newSeat.holdingNumber || '' }
+    };
+    // add to in-memory pending requests and notify user
+    setPendingRequests(prev => [requestWithId, ...prev]);
+    setShowAddForm(false);
+    alert('Your property request has been submitted for admin approval!');
+
+  };
 
   if (selectedSeat) {
     return (
@@ -362,16 +310,128 @@ function App() {
             <option value="Quad">Quad</option>
           </select>
           
-          <select 
+          <select
             className="filter-select"
             value={filters.location}
             onChange={(e) => handleFilterChange('location', e.target.value)}
           >
             <option value="">All Areas</option>
-            <option value="University Area">University Area</option>
-            <option value="Shaheb Bazar">Shaheb Bazar</option>
+            <option value="Kashiadanga">Kashiadanga</option>
+            <option value="Shahajipara">Shahajipara</option>
+            <option value="Raypara">Raypara</option>
+            <option value="Aduburi">Aduburi</option>
+            <option value="Shuripara">Shuripara</option>
+            <option value="Sayergacha">Sayergacha</option>
+            <option value="Hargram">Hargram</option>
+            <option value="Harupur">Harupur</option>
+            <option value="Hargram Natunpara">Hargram Natunpara</option>
+            <option value="Hargram Ranidighi">Hargram Ranidighi</option>
+            <option value="Hargram Colony">Hargram Colony</option>
+            <option value="Hargram Biddirpara">Hargram Biddirpara</option>
+            <option value="Nagorpara">Nagorpara</option>
+            <option value="Mollapara">Mollapara</option>
+            <option value="Sheikhpara">Sheikhpara</option>
+            <option value="Dashpukur">Dashpukur</option>
+            <option value="Baharampur">Baharampur</option>
+            <option value="Natun Bilsimla">Natun Bilsimla</option>
+            <option value="Laxmipur">Laxmipur</option>
+            <option value="Hargram Bazar">Hargram Bazar</option>
+            <option value="Bulonpur">Bulonpur</option>
+            <option value="Goalpara">Goalpara</option>
+            <option value="Keshabpur">Keshabpur</option>
+            <option value="Nawabganj">Nawabganj</option>
+            <option value="Rajpara">Rajpara</option>
+            <option value="Mohishbathan">Mohishbathan</option>
+            <option value="Kulupura">Kulupura</option>
+            <option value="Bhatapara">Bhatapara</option>
+            <option value="Chandipur">Chandipur</option>
+            <option value="Srirampur">Srirampur</option>
+            <option value="Betiapara">Betiapara</option>
+            <option value="Kazihata">Kazihata</option>
+            <option value="Sipaipara">Sipaipara</option>
+            <option value="Hosniganj">Hosniganj</option>
+            <option value="Dargapara">Dargapara</option>
+            <option value="Jotmahesh">Jotmahesh</option>
+            <option value="Sherusarpara">Sherusarpara</option>
+            <option value="Hetemkha">Hetemkha</option>
+            <option value="Puraton Bilsimla">Puraton Bilsimla</option>
+            <option value="Wapda Colony">Wapda Colony</option>
+            <option value="Medical Campus">Medical Campus</option>
+            <option value="Sojipara">Sojipara</option>
+            <option value="Panbahar">Panbahar</option>
+            <option value="Malopara">Malopara</option>
+            <option value="Razarhata">Razarhata</option>
+            <option value="Kadirganj">Kadirganj</option>
+            <option value="Methorpara">Methorpara</option>
+            <option value="Karikorpara">Karikorpara</option>
+            <option value="Fodkipara">Fodkipara</option>
+            <option value="Kumarpara">Kumarpara</option>
+            <option value="Sahebganj">Sahebganj</option>
+            <option value="Saheb Bazar">Saheb Bazar</option>
+            <option value="Rani Bazar">Rani Bazar</option>
+            <option value="Ganakpara">Ganakpara</option>
+            <option value="Miyapara">Miyapara</option>
+            <option value="Dorikhorbona">Dorikhorbona</option>
+            <option value="Upshohor">Upshohor</option>
+            <option value="Terkhadia">Terkhadia</option>
+            <option value="Sapura">Sapura</option>
+            <option value="Jinnanagar">Jinnanagar</option>
+            <option value="Mathuradanga">Mathuradanga</option>
+            <option value="Bokhtiarabad">Bokhtiarabad</option>
+            <option value="Koyerdara">Koyerdara</option>
+            <option value="Barogram">Barogram</option>
+            <option value="Naodapara">Naodapara</option>
+            <option value="Asam Colony">Asam Colony</option>
+            <option value="Paba">Paba</option>
+            <option value="Ahmadnagar">Ahmadnagar</option>
+            <option value="Firozabad">Firozabad</option>
+            <option value="Natunpara">Natunpara</option>
+            <option value="TTC">TTC</option>
+            <option value="Mothpukur">Mothpukur</option>
+            <option value="Shalbagan">Shalbagan</option>
+            <option value="Shiroil Colony">Shiroil Colony</option>
+            <option value="Chhoto Bongram">Chhoto Bongram</option>
+            <option value="Hazarapukur">Hazarapukur</option>
+            <option value="Railway Colony">Railway Colony</option>
+            <option value="Boalia Para">Boalia Para</option>
+            <option value="Sultanabad">Sultanabad</option>
+            <option value="Ballobganj">Ballobganj</option>
+            <option value="Shiroil">Shiroil</option>
+            <option value="Sagorpara">Sagorpara</option>
+            <option value="Rampur Bazar">Rampur Bazar</option>
+            <option value="Khansamar Chak">Khansamar Chak</option>
+            <option value="Ghoramara">Ghoramara</option>
+            <option value="Shekherchak">Shekherchak</option>
+            <option value="Ramchandrapur">Ramchandrapur</option>
+            <option value="Baje Kazla">Baje Kazla</option>
+            <option value="Talaimari">Talaimari</option>
+            <option value="Raninagar">Raninagar</option>
+            <option value="Meherchandi">Meherchandi</option>
+            <option value="Namovodra">Namovodra</option>
+            <option value="Chokpara">Chokpara</option>
+            <option value="Eng Camp">Eng Camp</option>
+            <option value="Tikapara">Tikapara</option>
+            <option value="Mirerchak">Mirerchak</option>
+            <option value="Debisinghpara">Debisinghpara</option>
+            <option value="Baliyapukur">Baliyapukur</option>
+            <option value="Upor Bhadra">Upor Bhadra</option>
             <option value="Kazla">Kazla</option>
-            <option value="Court Para">Court Para</option>
+            <option value="Dharampur">Dharampur</option>
+            <option value="Char Kazla">Char Kazla</option>
+            <option value="Sahatbariya">Sahatbariya</option>
+            <option value="Khojapur">Khojapur</option>
+            <option value="Dashmari">Dashmari</option>
+            <option value="Char Satbariya">Char Satbariya</option>
+            <option value="Shyampur">Shyampur</option>
+            <option value="University Campus">University Campus</option>
+            <option value="Mirjapur">Mirjapur</option>
+            <option value="Maskata Dighi">Maskata Dighi</option>
+            <option value="Budhpara">Budhpara</option>
+            <option value="Mohanpur">Mohanpur</option>
+            <option value="Folbagan">Folbagan</option>
+            <option value="Krishi Farm">Krishi Farm</option>
+            <option value="Gobeshonaloy">Gobeshonaloy</option>
+            <option value="Meherchandi Bodhupora">Meherchandi Bodhupora</option>
           </select>
              
           <select 
@@ -411,7 +471,13 @@ function App() {
 
       <button 
         className="add-seat-btn"
-        onClick={() => setShowAddForm(true)}
+        onClick={() => {
+          if (!currentUser) {
+            window.location.href = `/login?returnTo=${encodeURIComponent('/add')}`;
+            return;
+          }
+          setShowAddForm(true);
+        }}
       >
         + Add Your Mess/House
       </button>
@@ -422,7 +488,7 @@ function App() {
     <Router>
       <div className="App">
         <Header 
-          onAdminClick={() => setShowAdminPanel(true)} 
+          onAdminClick={() => setShowAdminPanel(true)}
           currentUser={currentUser}
           isAdmin={currentUser && currentUser.userType === 'owner'}
           onLogin={handleOpenLogin}
@@ -448,13 +514,16 @@ function App() {
 
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/profile" element={<Profile user={currentUser} />} />
+          <Route path="/about" element={<ProtectedRoute currentUser={currentUser}><About /></ProtectedRoute>} />
+          <Route path="/contact" element={<ProtectedRoute currentUser={currentUser}><Contact /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute currentUser={currentUser}><Profile user={currentUser} /></ProtectedRoute>} />
+          <Route path="/add" element={<ProtectedRoute currentUser={currentUser}><AddSeatForm onSubmit={handleAddSeat} onCancel={() => setShowAddForm(false)} /></ProtectedRoute>} />
+          <Route path="/login" element={<Login onLogin={(user) => { handleLogin(user); const params = new URLSearchParams(window.location.search); const ret = params.get('returnTo'); if (ret) { window.location.replace(ret); } }} onClose={() => { window.history.back(); }} onSwitchToRegister={handleOpenRegister} />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/debug-firebase" element={<FirebaseDebug />} />
         </Routes>
+          {debugBanner}
       </div>
     </Router>
   );

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { testFirebaseConnection } from '../firebase/test';
+import { auth } from '../firebase/config';
+import { getIdTokenResult } from 'firebase/auth';
 
 export default function FirebaseDebug() {
   const [result, setResult] = useState(null);
@@ -18,6 +20,24 @@ export default function FirebaseDebug() {
     }
   };
 
+  const checkTokenClaims = async () => {
+    setRunning(true);
+    try {
+      if (!auth || !auth.currentUser) {
+        setResult({ error: 'No authenticated user (sign in first).' });
+        return;
+      }
+      // Force token refresh so custom claims are present
+      await auth.currentUser.getIdToken(true);
+      const idRes = await getIdTokenResult(auth.currentUser);
+      setResult({ tokenClaims: idRes.claims });
+    } catch (e) {
+      setResult({ error: e.message || String(e) });
+    } finally {
+      setRunning(false);
+    }
+  };
+
   return (
     <div style={{ padding: 20 }}>
       <h2>Firebase Debug</h2>
@@ -25,6 +45,12 @@ export default function FirebaseDebug() {
       <button onClick={runTest} disabled={running}>
         {running ? 'Running...' : 'Run Firebase Test'}
       </button>
+
+      <div style={{ marginTop: 12 }}>
+        <button onClick={checkTokenClaims} disabled={running}>
+          {running ? 'Checking...' : 'Check auth token claims'}
+        </button>
+      </div>
 
       {result && (
         <div style={{ marginTop: 20 }}>

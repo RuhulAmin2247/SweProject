@@ -10,6 +10,8 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
     holdingNumber: '',
     mapLink: '',
     price: '',
+    totalSeats: '',
+    vacantSeats: '',
     description: '',
     amenities: [],
     contact: '',
@@ -81,9 +83,18 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
       // For demo purposes, we'll use the preview URLs
       // In a real app, you would upload files to a server first
         const fallbackImages = defaultImageGroups[0];
+        // Normalize numeric fields
+        const totalSeatsNum = formData.totalSeats ? parseInt(formData.totalSeats, 10) : undefined;
+        const vacantSeatsNum = formData.vacantSeats ? parseInt(formData.vacantSeats, 10) : undefined;
+        const normalizedVacant = typeof vacantSeatsNum === 'number'
+          ? vacantSeatsNum
+          : (typeof totalSeatsNum === 'number' ? totalSeatsNum : 1);
+
         const submissionData = {
           ...formData,
-          price: parseInt(formData.price),
+          price: parseInt(formData.price, 10),
+          totalSeats: typeof totalSeatsNum === 'number' ? totalSeatsNum : (normalizedVacant || 1),
+          vacantSeats: normalizedVacant,
           images: formData.images.length > 0 ? formData.images : fallbackImages,
           image: formData.images.length > 0 ? formData.images[0] : fallbackImages[0] // For backward compatibility
         };
@@ -197,6 +208,34 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
               placeholder="https://www.google.com/maps?q=24.3745,88.6042"
             />
             <small className="help-text">Paste a Google Maps link or use lat,long with https://www.google.com/maps?q=lat,lng</small>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="totalSeats">Total Seats (owners only)</label>
+              <input
+                type="number"
+                id="totalSeats"
+                name="totalSeats"
+                min="1"
+                value={formData.totalSeats}
+                onChange={handleInputChange}
+                placeholder="e.g., 10"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="vacantSeats">Vacant Seats</label>
+              <input
+                type="number"
+                id="vacantSeats"
+                name="vacantSeats"
+                min="0"
+                value={formData.vacantSeats}
+                onChange={handleInputChange}
+                placeholder="e.g., 5"
+              />
+            </div>
           </div>
 
           <div className="form-group">
