@@ -94,12 +94,15 @@ export const loginUser = async (email, password) => {
     // Dev-only admin override: enable by setting REACT_APP_DEV_ADMIN=true in .env
     // WARNING: This is insecure and MUST NOT be used in production. It's provided
     // as a convenience so you can log in locally as the admin without creating
-    // a Firebase user. To enable, create a .env file with:
+    // a Firebase user. To enable, create a local env file (e.g. .env.local) with:
     // REACT_APP_DEV_ADMIN=true
-    // Use credentials: admin@gmail.com / 123456
+    // REACT_APP_DEV_ADMIN_EMAIL=you@example.com
+    // REACT_APP_DEV_ADMIN_PASSWORD=your-dev-password
+    // When enabled the app will check the credentials below. Prefer using
+    // environment variables rather than committing credentials to source.
     if (process.env.REACT_APP_DEV_ADMIN === 'true') {
-      const DEV_ADMIN_EMAIL = 'admin@gmail.com';
-      const DEV_ADMIN_PASSWORD = '123456';
+      const DEV_ADMIN_EMAIL = process.env.REACT_APP_DEV_ADMIN_EMAIL || 'admin@gmail.com';
+      const DEV_ADMIN_PASSWORD = process.env.REACT_APP_DEV_ADMIN_PASSWORD || '123456';
       if (email === DEV_ADMIN_EMAIL && password === DEV_ADMIN_PASSWORD) {
         // Return a fake admin user object compatible with the rest of the app
         return {
@@ -183,7 +186,7 @@ export const sendResetEmail = async (email) => {
       handleCodeInApp: true
     };
 
-    await sendPasswordResetEmail(auth, email, actionCodeSettings);
+    await sendPasswordResetEmail(auth,email, actionCodeSettings);
     return { success: true };
   } catch (error) {
     console.error('Password reset error:', error);
