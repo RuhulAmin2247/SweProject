@@ -25,7 +25,8 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
   const availableAmenities = [
     'WiFi', 'AC', 'Laundry', '24/7 Security', 'Furnished', 
     'Kitchen Access', 'Study Room', 'Common Room', 'Library', 
-    'Medical Facility', 'Generator', 'Parking','Single', 'Double', 'Triple', 'Quad'
+    'Medical Facility', 'Generator', 'Parking','Single', 'Double', 'Triple', 'Quad ,att'
+    , 'attatchbathroom'
   ];
 
   const handleInputChange = (e) => {
@@ -154,6 +155,7 @@ const AddSeatForm = ({ onSubmit, onCancel }) => {
               >
                 <option value="Boys">Boys</option>
                 <option value="Girls">Girls</option>
+                <option value="Family">Family</option>
               </select>
             </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useParams } from 'react-router-dom';
 // defaultImageGroups removed — seats are loaded from Firestore
 import defaultImageGroups from './config/defaultImages';
 import Header from './components/Header';
@@ -87,10 +87,11 @@ function App() {
     search: ''
   });
 
-  const [selectedSeat, setSelectedSeat] = useState(null);
+  // selectedSeat removed: details shown on separate route (/details/:id)
   const [showAddForm, setShowAddForm] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [pendingBookings, setPendingBookings] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
@@ -118,6 +119,28 @@ function App() {
     // keep existing in-memory defaults
   }, []);
 
+  // Load persisted pending requests/bookings from localStorage (helps while debugging)
+  useEffect(() => {
+    try {
+      const savedReq = localStorage.getItem('pendingRequests');
+      const savedBook = localStorage.getItem('pendingBookings');
+      if (savedReq) setPendingRequests(JSON.parse(savedReq));
+      if (savedBook) setPendingBookings(JSON.parse(savedBook));
+    } catch (err) {
+      console.warn('Failed to load persisted requests/bookings', err);
+    }
+  }, []);
+
+  // Persist pendingRequests and pendingBookings when they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('pendingRequests', JSON.stringify(pendingRequests));
+      localStorage.setItem('pendingBookings', JSON.stringify(pendingBookings));
+    } catch (err) {
+      console.warn('Failed to persist requests/bookings', err);
+    }
+  }, [pendingRequests, pendingBookings]);
+
   // debug banner counts
   const debugBanner = (
     <div style={{ position: 'fixed', left: 12, bottom: 12, background: 'rgba(0,0,0,0.6)', color: 'white', padding: '8px 10px', borderRadius: 8, fontSize: 12, zIndex: 9999 }}>
@@ -125,23 +148,57 @@ function App() {
     </div>
   );
 
-  const handleSeatClick = (seat) => {
-    if (!currentUser) {
-      // redirect anonymous users to login and return to home (or a detail path if you add one)
-      window.location.href = `/login?returnTo=${encodeURIComponent('/')}`;
-      return;
+  // SeatCard now navigates to /details/:id, so we no longer set selectedSeat here.
+
+  // When a user submits a booking requirement form, create a pending booking
+  const handleBookSeat = (seatId, requirements = { seatsNeeded: 1 }) => {
+    const seat = seats.find(s => s.id === seatId);
+    if (!seat) return;
+    const booking = {
+      id: Date.now(),
+      seatId,
+      seatTitle: seat.title,
+      requester: currentUser ? { uid: currentUser.uid || currentUser.id, name: currentUser.name || currentUser.email } : { name: 'Anonymous' },
+      owner: seat.ownerInfo ? { uid: seat.ownerInfo.uid, name: seat.ownerInfo.name, holdingNumber: seat.ownerInfo.holdingNumber } : (seat.ownerId ? { uid: seat.ownerId } : null),
+      requirements,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    console.log('Creating booking', booking);
+    setPendingBookings(prev => [booking, ...prev]);
+    console.log('Pending bookings count:', (pendingBookings.length + 1));
+    // notify user
+    if (booking.owner && booking.owner.name) {
+      alert(`Your booking request has been sent to the owner (${booking.owner.name}). You will be notified when it is accepted.`);
+    } else {
+      alert('Your booking request has been submitted. The owner will be notified when they review bookings.');
     }
-    setSelectedSeat(seat);
   };
 
-  const handleBookSeat = (seatId) => {
+  // Owner/admin accepts a booking: decrement vacantSeats by requested amount
+  const handleApproveBooking = (bookingId) => {
+    const booking = pendingBookings.find(b => b.id === bookingId);
+    if (!booking) return;
+    const { seatId, requirements } = booking;
+    const seatsNeeded = Number(requirements.seatsNeeded) || 1;
+
     setSeats(prev => prev.map(s => {
       if (s.id !== seatId) return s;
       const vacant = Number(s.vacantSeats || 0);
-      const total = Number(s.totalSeats || 0);
-      const newVacant = Math.max(0, vacant - 1);
+      const newVacant = Math.max(0, vacant - seatsNeeded);
       return { ...s, vacantSeats: newVacant, availability: newVacant === 0 ? 'Full' : 'Available' };
     }));
+
+    setPendingBookings(prev => prev.filter(b => b.id !== bookingId));
+    alert(`Booking for ${booking.seatTitle} approved. ${seatsNeeded} seat(s) deducted.`);
+  };
+
+  const handleRejectBooking = (bookingId) => {
+    const booking = pendingBookings.find(b => b.id === bookingId);
+    if (!booking) return;
+    if (window.confirm('Reject this booking request?')) {
+      setPendingBookings(prev => prev.filter(b => b.id !== bookingId));
+    }
   };
 
   const handleRemoveSeat = (seatId) => {
@@ -207,9 +264,7 @@ function App() {
     return true;
   });
 
-  const handleBackToList = () => {
-    setSelectedSeat(null);
-  };
+  // handleBackToList removed; SeatDetails uses browser history to go back
 
   const handleAddSeat = (newSeat) => {
     // Submit as pending request for admin approval (in-memory)
@@ -219,26 +274,42 @@ function App() {
       rating: 0,
       status: 'pending',
       submittedAt: new Date().toISOString(),
-      ownerInfo: newSeat.ownerInfo || { name: currentUser?.name || '', nidNumber: newSeat.nidNumber || '', holdingNumber: newSeat.holdingNumber || '' }
+      ownerInfo: newSeat.ownerInfo || { name: currentUser?.name || '', nidNumber: newSeat.nidNumber || '', holdingNumber: newSeat.holdingNumber || '' },
+      // Attach ownerId when the current user is logged in as an owner — helps routing requests to the owner
+      ownerId: currentUser ? (currentUser.uid || currentUser.id) : undefined
     };
     // add to in-memory pending requests and notify user
+    console.log('Submitting property request', requestWithId);
     setPendingRequests(prev => [requestWithId, ...prev]);
+    console.log('Pending requests count:', (pendingRequests.length + 1));
     setShowAddForm(false);
     alert('Your property request has been submitted for admin approval!');
 
   };
 
-  if (selectedSeat) {
+  // Route-based details page component (shows a single listing on its own page)
+  const SeatDetailsPage = () => {
+    const { id } = useParams();
+    const seat = seats.find(s => String(s.id) === String(id));
+    if (!seat) {
+      return (
+        <div className="App">
+          <main className="main-content">
+            <h3>Listing not found</h3>
+            <p>The requested listing does not exist.</p>
+          </main>
+        </div>
+      );
+    }
     return (
       <div className="App">
-        <SeatDetails 
-          seat={selectedSeat} 
-          onBack={handleBackToList}
-          onBook={handleBookSeat}
-        />
+        <SeatDetails seat={seat} onBack={() => window.history.back()} onBook={handleBookSeat} currentUser={currentUser} />
       </div>
     );
-  }
+  };
+
+  // Render SeatDetails as an overlay/modal when selectedSeat is set
+  // (previously we returned only SeatDetails which navigated away from the listings).
 
   if (showAddForm) {
     return (
@@ -254,10 +325,14 @@ function App() {
         <AdminPanel 
           seats={seats}
           pendingRequests={pendingRequests}
+          pendingBookings={pendingBookings}
           onRemoveSeat={handleRemoveSeat}
           onApproveRequest={handleApproveRequest}
           onRejectRequest={handleRejectRequest}
+          onApproveBooking={handleApproveBooking}
+          onRejectBooking={handleRejectBooking}
           onBack={() => setShowAdminPanel(false)}
+          currentUser={currentUser}
         />
       </div>
     );
@@ -454,11 +529,7 @@ function App() {
 
       <div className="seats-grid">
         {filteredSeats.map(seat => (
-          <SeatCard 
-            key={seat.id} 
-            seat={seat} 
-            onClick={() => handleSeatClick(seat)} 
-          />
+          <SeatCard key={seat.id} seat={seat} />
         ))}
       </div>
 
@@ -514,15 +585,17 @@ function App() {
 
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/details/:id" element={<SeatDetailsPage />} />
           <Route path="/about" element={<ProtectedRoute currentUser={currentUser}><About /></ProtectedRoute>} />
           <Route path="/contact" element={<ProtectedRoute currentUser={currentUser}><Contact /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute currentUser={currentUser}><Profile user={currentUser} /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute currentUser={currentUser}><Profile user={currentUser} seats={seats} pendingBookings={pendingBookings} onApproveBooking={handleApproveBooking} onRejectBooking={handleRejectBooking} /></ProtectedRoute>} />
           <Route path="/add" element={<ProtectedRoute currentUser={currentUser}><AddSeatForm onSubmit={handleAddSeat} onCancel={() => setShowAddForm(false)} /></ProtectedRoute>} />
           <Route path="/login" element={<Login onLogin={(user) => { handleLogin(user); const params = new URLSearchParams(window.location.search); const ret = params.get('returnTo'); if (ret) { window.location.replace(ret); } }} onClose={() => { window.history.back(); }} onSwitchToRegister={handleOpenRegister} />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/debug-firebase" element={<FirebaseDebug />} />
         </Routes>
+        {/* Details are shown on their own route: /details/:id */}
           {debugBanner}
       </div>
     </Router>

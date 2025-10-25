@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './AdminPanel.css';
 import { getUserStats } from '../firebase/userStats';
 
-const AdminPanel = ({ seats, pendingRequests, onRemoveSeat, onApproveRequest, onRejectRequest, onBack }) => {
+const AdminPanel = ({ seats, pendingRequests, pendingBookings, onRemoveSeat, onApproveRequest, onRejectRequest, onApproveBooking, onRejectBooking, onBack, currentUser }) => {
   const [activeTab, setActiveTab] = useState('published');
   const [userStats, setUserStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -28,6 +28,17 @@ const AdminPanel = ({ seats, pendingRequests, onRemoveSeat, onApproveRequest, on
   const availableSeats = seats.filter(seat => seat.status === 'published' && seat.availability === 'Available').length;
   const bookedSeats = seats.filter(seat => seat.status === 'published' && seat.availability === 'Booked').length;
   const pendingCount = pendingRequests.length;
+
+  // Determine which bookings this user should see: admins see all; owners see bookings for their seats
+  const bookingsToShow = (pendingBookings || []).filter(b => {
+    if (!currentUser) return false;
+    if (currentUser.userType === 'admin') return true;
+    if (currentUser.userType === 'owner') {
+      // check if this booking belongs to any seat owned by currentUser
+      return seats.some(seat => seat.id === b.seatId && (seat.ownerId === (currentUser.uid || currentUser.id) || (seat.ownerInfo && seat.ownerInfo.name === currentUser.name)));
+    }
+    return false;
+  });
 
   return (
     <div className="admin-panel">
@@ -83,6 +94,12 @@ const AdminPanel = ({ seats, pendingRequests, onRemoveSeat, onApproveRequest, on
             onClick={() => setActiveTab('pending')}
           >
             Pending Requests ({pendingCount})
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'bookings' ? 'active' : ''}`}
+            onClick={() => setActiveTab('bookings')}
+          >
+            Bookings
           </button>
           <button 
             className={`tab-btn ${activeTab === 'published' ? 'active' : ''}`}
@@ -273,6 +290,44 @@ const AdminPanel = ({ seats, pendingRequests, onRemoveSeat, onApproveRequest, on
               <div className="no-properties">
                 <h3>No users found</h3>
                 <p>No registered users in the system.</p>
+              </div>
+            )}
+          </div>
+        )}
+        {activeTab === 'bookings' && (
+          <div className="bookings-section">
+            <h2>Pending Bookings</h2>
+            {(!bookingsToShow || bookingsToShow.length === 0) ? (
+              <div className="no-properties">
+                <h3>No booking requests</h3>
+                <p>No pending booking requests at the moment.</p>
+              </div>
+            ) : (
+              <div className="admin-table">
+                <div className="table-header">
+                  <div className="col-id">ID</div>
+                  <div className="col-property">Property</div>
+                  <div className="col-requester">Requester</div>
+                  <div className="col-requirements">Requirements</div>
+                  <div className="col-created">Created</div>
+                  <div className="col-actions">Actions</div>
+                </div>
+
+                {bookingsToShow.map(b => (
+                  <div key={b.id} className="table-row booking-row">
+                    <div className="col-id">#{b.id}</div>
+                    <div className="col-property">{b.seatTitle}</div>
+                    <div className="col-requester">{b.requester?.name || 'Unknown'}</div>
+                    <div className="col-requirements">
+                      {b.requirements.seatsNeeded} seat(s) • {b.requirements.roomType} • {b.requirements.attachedBathroom ? 'Attached Bath' : 'No Bath'}
+                    </div>
+                    <div className="col-created">{new Date(b.createdAt).toLocaleString()}</div>
+                    <div className="col-actions">
+                      <button className="approve-btn" onClick={() => onApproveBooking(b.id)}>✓ Approve</button>
+                      <button className="reject-btn" onClick={() => onRejectBooking(b.id)}>✗ Reject</button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

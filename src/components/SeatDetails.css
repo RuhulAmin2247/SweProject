@@ -289,3 +289,64 @@
     flex-direction: column;
   }
 }
+
+/* Simple modal styles for booking requirements */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-card {
+  width: 320px;
+  max-width: calc(100% - 40px);
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+}
+
+.booking-form label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.booking-form input[type="number"],
+.booking-form input[type="text"],
+.booking-form select {
+  width: 100%;
+  padding: 8px;
+  margin-top: 6px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.modal-actions .cancel-btn {
+  background: #eee;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.modal-actions .submit-btn {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}

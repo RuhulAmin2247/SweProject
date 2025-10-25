@@ -1,17 +1,55 @@
 import React, { useState } from 'react';
 import './SeatDetails.css';
 
-const SeatDetails = ({ seat, onBack, onBook }) => {
+const SeatDetails = ({ seat, onBack, onBook, currentUser }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const images = seat.images || [seat.image];
 
+  // Booking requirements modal state
+  const [showReqForm, setShowReqForm] = useState(false);
+  const [reqForm, setReqForm] = useState({
+    seatsNeeded: 1,
+    sameRoom: true,
+    floor: '',
+    roomType: 'Single',
+    attachedBathroom: false
+  });
+
+  const openReqForm = () => {
+    setReqForm({ seatsNeeded: 1, sameRoom: true, floor: '', roomType: 'Single', attachedBathroom: false });
+    setShowReqForm(true);
+  };
+
+  const handleReqChange = (field, value) => {
+    setReqForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const submitRequirements = (e) => {
+    e.preventDefault();
+    const seatsNeededNum = Number(reqForm.seatsNeeded) || 1;
+    if (seatsNeededNum <= 0) {
+      alert('Please choose at least 1 seat');
+      return;
+    }
+    if (seatsNeededNum > (seat.vacantSeats || 0)) {
+      const ok = window.confirm(`Only ${seat.vacantSeats || 0} seats are available. Do you want to request ${seat.vacantSeats || 0} instead?`);
+      if (!ok) return;
+      handleReqChange('seatsNeeded', seat.vacantSeats || 0);
+    }
+
+    onBook(seat.id, { ...reqForm, seatsNeeded: seatsNeededNum });
+    setShowReqForm(false);
+  };
+
   const handleBooking = () => {
+    // require login for booking; viewing details is public
+    if (!currentUser) {
+      window.location.href = `/login?returnTo=${encodeURIComponent(window.location.href)}`;
+      return;
+    }
+    // open requirement form modal instead of immediate confirm
     if (seat.vacantSeats > 0) {
-      const confirmed = window.confirm(`Book a seat at ${seat.title}? This will reduce available seats from ${seat.vacantSeats} to ${seat.vacantSeats - 1}.`);
-      if (confirmed) {
-        onBook(seat.id);
-        alert('Seat booked successfully!');
-      }
+      openReqForm();
     }
   };
 
@@ -119,6 +157,57 @@ const SeatDetails = ({ seat, onBack, onBook }) => {
             )}
           </div>
         </div>
+        {/* Booking Requirements Modal */}
+        {showReqForm && (
+          <div className="modal-overlay">
+            <div className="modal-card">
+              <h3>Booking Requirements for {seat.title}</h3>
+              <form onSubmit={submitRequirements} className="booking-form">
+                <label>
+                  How many seats needed
+                  <input type="number" min="1" value={reqForm.seatsNeeded} onChange={(e) => handleReqChange('seatsNeeded', e.target.value)} />
+                </label>
+
+                <label>
+                  Seats in same room?
+                  <select value={reqForm.sameRoom ? 'yes' : 'no'} onChange={(e) => handleReqChange('sameRoom', e.target.value === 'yes')}>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </label>
+
+                <label>
+                  Floor (optional)
+                  <input type="text" value={reqForm.floor} onChange={(e) => handleReqChange('floor', e.target.value)} placeholder="e.g., 2nd floor" />
+                </label>
+
+                <label>
+                  Room type
+                  <select value={reqForm.roomType} onChange={(e) => handleReqChange('roomType', e.target.value)}>
+                    <option>Single</option>
+                    <option>Double</option>
+                    <option>Triple</option>
+                    <option>Quad</option>
+                    <option>Other</option>
+                  </select>
+                </label>
+
+                <label>
+                  Attached bathroom
+                  <select value={reqForm.attachedBathroom ? 'yes' : 'no'} onChange={(e) => handleReqChange('attachedBathroom', e.target.value === 'yes')}>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </label>
+
+                <div className="modal-actions">
+                  <button type="button" className="cancel-btn" onClick={() => setShowReqForm(false)}>Cancel</button>
+                  <button type="submit" className="submit-btn">Submit Request</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

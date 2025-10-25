@@ -1,9 +1,11 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './SeatCard.css';
 
-const SeatCard = ({ seat, onClick }) => {
+const SeatCard = ({ seat }) => {
   return (
-    <div className="seat-card" onClick={onClick}>
+    <Link to={`/details/${seat.id}`} className="seat-card-link">
+      <div className="seat-card" style={{ cursor: 'pointer' }}>
       <div className="seat-image">
         <img src={seat.image} alt={seat.title} />
         <div className={`availability-badge ${seat.availability.toLowerCase()}`}>
@@ -44,8 +46,12 @@ const SeatCard = ({ seat, onClick }) => {
             <span key={index} className="amenity-tag">{amenity}</span>
           ))}
         </div>
+        <div className="card-actions">
+          <button type="button" className="view-details-btn">View Details</button>
+        </div>
       </div>
     </div>
+    </Link>
   );
 };
 
